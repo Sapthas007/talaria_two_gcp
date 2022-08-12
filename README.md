@@ -10,7 +10,7 @@
 
 <a name="introduction"></a>
 
-[GCP IoT Device SDK Embedded-C Release](git clone https://github.com/GoogleCloudPlatform/iot-device-sdk-embedded-c.git --recurse-submodules) is ported on Talaria TWO Software Development Kit as per the porting guidelines.
+[GCP IoT Device SDK Embedded-C Release](git clone https://github.com/Sapthas007/talaria_two_gcp.git --recurse-submodules) is ported on Talaria TWO Software Development Kit as per the porting guidelines.
 
 Using this, the users can now start developing exciting [ultra-low power IoT solutions on Talaria TWO family of devices](https://innophaseinc.com/talaria-technology-details/), utilizing the power of the Google cloud IoT Core platform and its services.
 
