@@ -27,7 +27,7 @@ API Documentation and other details specific to GCP IoT Device SDK Embedded C re
 ### Cloning the 'iot_gcp' repository
 - Create a new folder in any place and clone the 'iot_gcp' repo using below command
 ``` bash
-git clone --recursive https://github.com/Sapthas007/iot_gcp.git
+git clone --recursive https://github.com/Sapthas007/talaria_two_gcp.git
 ```
 > This repo uses [Git Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) for it's dependencies. The option '--recursive' is required to clone git submodule repos needed by 'iot_gcp' repo.
 
