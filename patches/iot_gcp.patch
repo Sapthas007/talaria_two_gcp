@@ -1,0 +1,1304 @@
+diff --git a/Makefile b/Makefile
+index 7cc7072..f076b18 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,314 +1,117 @@
+-# Copyright 2018-2020 Google LLC
+-#
+-# This is part of the Google Cloud IoT Device SDK for Embedded C.
+-# It is licensed under the BSD 3-Clause license; you may not use this file
+-# except in compliance with the License.
+-#
+-# You may obtain a copy of the License at:
+-#  https://opensource.org/licenses/BSD-3-Clause
+-#
+-# Unless required by applicable law or agreed to in writing, software
+-# distributed under the License is distributed on an "AS IS" BASIS,
+-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-# See the License for the specific language governing permissions and
+-# limitations under the License.
+ 
+-LIBIOTC := $(CURDIR)
++ROOT_LOC=../..
++-include ${ROOT_LOC}/embedded_apps.mak
++SDK_DIR ?= $(ROOT_LOC)
++include $(ROOT_LOC)/build.mak
++include $(SDK_DIR)/conf/sdk.mak
++
++lib_path_gcp=lib
++lib_path_t2_pltfm=lib
++
++gcp_third=third_party/
++gcp_include=include/
++gcp_src=src/
++gcp_example =examples/
++gcp_T2_plaform=src/bsp/
++
++commonIncs = -Iinclude \
++             -Isrc/libiotc \
++             -Isrc/libiotc/control_topic \
++             -Isrc/libiotc/datastructures \
++             -Isrc/libiotc/debug_extensions/memory_limiter \
++             -Isrc/libiotc/event_dispatcher \
++             -Isrc/libiotc/event_loop \
++             -Isrc/libiotc/mqtt \
++             -Isrc/libiotc/memory \
++             -Isrc/libiotc/platform \
++             -Isrc/libiotc/platform/dummy \
++             -Isrc/libiotc/platform/iotc_thread \
++             -Isrc/libiotc/platform/dummy/iotc_thread \
++             -Isrc/libiotc/io/net \
++             -Isrc/libiotc/io/fs \
++             -Isrc/libiotc/io/net \
++             -Isrc/libiotc/tls \
++             -Isrc/libiotc/tls/certs \
++             -Isrc/libiotc/mqtt/logic \
++             -Isrc/libiotc/tls \
++             -Ithird_party/protobuf-c \
++             -Ithird_party/protobuf-c/library \
++             -Ithird_party/protobuf-c/library/protobuf-c \
++             -Ithird_party/mqtt-protocol-c \
++             -Ithird_party/cryptoauthlib/lib \
++             -Ithird_party/cryptoauthlib/crypto \
++             -Ithird_party/cryptoauthlib/lib/basic \
++             -Ithird_party/cryptoauthlib/lib/crypto/hashes \
++             -Iexample/common/src \
++             -Isrc/libiotc/mqtt/codec \
++	
++
++CPPFLAGS +=  -I${gcp_example}common -Isrc -DMBEDTLS_DEPRECATED_REMOVED
++CPPFLAGS += -DDISABLE_METRICS  
++CPPFLAGS += -D_ENABLE_THREAD_SUPPORT_
++LDFLAGS += -L$(objdir)/${lib_path_gcp}
++LDFLAGS += -L$(objdir)/${lib_path_t2_pltfm}
++LDFLAGS += --no-gc-sections
++CPPFLAGS += -I${gcp_include} -I${gcp_include}bsp
++CPPFLAGS += -I${gcp_src}bsp 
++CPPFLAGS +=${commonIncs} -I$(COMPONENTS_DIR)
++LDFLAGS += -L$(COMPONENTS_DIR)
++CFLAGS += -DIOTC_TLS_LIB_MBEDTLS -DIOTC_DEBUG_OUTPUT=0 -DIOTC_DEBUG_ASSERT=0 -DIOTC_DEBUG_EXTRA_INFO=0 -DIOTC_FS_POSIX -DIOTC_MEMORY_LIMITER_APPLICATION_MEMORY_LIMIT=524288  -DIOTC_MEMORY_LIMITER_SYSTEM_MEMORY_LIMIT=2024  -DIOTC_MEMORY_LIMITER_ENABLED -DIOTC_PLATFORM_BASE_DUMMY -DIOTC_MULTI_LEVEL_DIRECTORY_STRUCTURE -DIOTC_LIBCRYPTO_AVAILABLE
++
++
++APPS = iot_core_mqtt_client.elf iot_core_mqtt_client.elf.strip \
++        
++targets=$(addprefix $(objdir)/,$(APPS))
++all: libcomponents $(objdir)/${lib_path_gcp}/libgcp_iot_t2.a $(objdir)/${lib_path_t2_pltfm}/libgcp_iot_t2_platform.a $(targets)
++$(targets) : $(COMMON_FILES)
++
++#t2 platform specific implementation
++#t2_specific = ${t2_plat}t2_thread.o ${t2_plat}t2_time.o ${t2_plat}network_mbedtls_wrapper.o
++
++gcp_src_core = ${gcp_src}libiotc/iotc_connection_data.o ${gcp_src}libiotc/iotc_data_desc.o ${gcp_src}libiotc/iotc_debug.o ${gcp_src}libiotc/iotc_error.o \
++               ${gcp_src}libiotc/iotc_globals.o ${gcp_src}libiotc/iotc_handle.o ${gcp_src}libiotc/iotc_helpers.o ${gcp_src}libiotc/iotc_internals.o \
++               ${gcp_src}libiotc/iotc_io_timeouts.o ${gcp_src}libiotc/iotc_jwt.o ${gcp_src}libiotc/iotc_layer_api.o ${gcp_src}libiotc/iotc_layer_default_allocators.o \
++               ${gcp_src}libiotc/iotc_layer_default_functions.o ${gcp_src}libiotc/iotc_timed_task.o ${gcp_src}libiotc/iotc_tuples.o ${gcp_src}libiotc/iotc_user_sub_call_wrapper.o \
++               ${gcp_src}libiotc/control_topic/iotc_control_topic_layer.o ${gcp_src}libiotc/datastructures/iotc_vector.o ${gcp_src}libiotc/debug_extensions/memory_limiter/iotc_memory_limiter.o \
++               ${gcp_src}libiotc/event_dispatcher/iotc_event_dispatcher.o ${gcp_src}libiotc/event_dispatcher/iotc_event_handle.o ${gcp_src}libiotc/event_dispatcher/iotc_event_thread_dispatcher.o \
++               ${gcp_src}libiotc/event_dispatcher/iotc_time_event.o ${gcp_src}libiotc/event_loop/iotc_event_loop.o ${gcp_src}libiotc/memory/iotc_allocator.o \
++               ${gcp_src}libiotc/mqtt/logic/iotc_mqtt_logic_layer.o  ${gcp_src}libiotc/tls/certs/iotc_RootCA_list.o \
++               ${gcp_src}libiotc/mqtt/logic/iotc_mqtt_logic_layer_data.o ${gcp_src}libiotc/mqtt/logic/iotc_mqtt_logic_layer_keepalive_handler.o ${gcp_src}libiotc/tls/iotc_tls_layer.o \
++               ${gcp_src}libiotc/mqtt/logic/iotc_mqtt_logic_layer_task_helpers.o  \
++               ${gcp_src}libiotc/io/fs/memory/iotc_fs_memory.o ${gcp_src}libiotc/iotc.o \
++               ${gcp_src}libiotc/io/fs/iotc_fs_bsp_to_iotc_mapping.o ${gcp_src}libiotc/io/fs/iotc_fs_filenames.o ${gcp_src}libiotc/io/fs/iotc_resource_manager.o \
++               ${gcp_src}libiotc/iotc_backoff_status_api.o ${gcp_src}libiotc/io/net/iotc_io_net_layer.o \
++               ${gcp_src}libiotc/mqtt/codec/iotc_mqtt_codec_layer.o ${gcp_src}libiotc/mqtt/codec/iotc_mqtt_codec_layer_data.o \
++                
++gcp_src_core_T2 = ${gcp_T2_plaform}platform/t2/iotc_bsp_rng_t2.o \
++               ${gcp_T2_plaform}platform/t2/iotc_bsp_time_t2.o ${gcp_T2_plaform}crypto/mbedtls/iotc_bsp_crypto_mbedtls.o \
++               ${gcp_T2_plaform}tls/mbedtls/iotc_bsp_tls_mbedtls.o  \
++               ${gcp_T2_plaform}platform/t2/iotc_bsp_io_net_t2.o ${gcp_T2_plaform}platform/t2/iotc_bsp_mem_t2.o 
++               #${gcp_src}platform/dummy/iotc_bsp_io_fs_dummy.o \
++               
++gcp_third_core = ${gcp_third}mqtt-protocol-c/iotc_mqtt_parser.o ${gcp_third}mqtt-protocol-c/iotc_mqtt_message.o ${gcp_third}mqtt-protocol-c/iotc_mqtt_serialiser.o \
++		 ${gcp_third}mqtt-protocol-c/iotc_debug_data_desc_dump.o
++		 
++gcp_example_core = ${gcp_example}common/src/example_utils.o \
++
++
++$(objdir)/${lib_path_gcp}/libgcp_iot_t2.a: $(addprefix $(objdir)/,${gcp_src_core}) $(addprefix $(objdir)/,${gcp_third_core}) $(addprefix $(objdir)/,${gcp_example_core}) 
++	mkdir -p $(objdir)/${lib_path_gcp}
++	${CROSS_COMPILE}ar rcs $@ $^
++
++
++$(objdir)/${lib_path_t2_pltfm}/libgcp_iot_t2_platform.a: $(addprefix $(objdir)/,${gcp_src_core_T2})
++	mkdir -p $(objdir)/${lib_path_t2_pltfm}
++	${CROSS_COMPILE}ar rcs $@ $^	
++
++
++iot_core_mqtt_client-virt = yes
++iot_core_mqtt_client_OBJS  = examples/iot_core_mqtt_client/src/iot_core_mqtt_client.o 
++$(objdir)/iot_core_mqtt_client.elf:LIBS =  -lgcp_iot_t2 -lgcp_iot_t2_platform -lcomponents -ldragonfly -limath -lkernel -lc -llwip2 -lmbedtls  -lrfdrv -lsupplicant -lwifi 
++$(objdir)/iot_core_mqtt_client.elf: $(addprefix $(objdir)/,${iot_core_mqtt_client_OBJS})
+ 
+-export LIBIOTC
+-
+-# Reserve 'all' as the default build target
+-all:
+-
+-IOTC_SRCDIRS ?=
+-IOTC_CONFIG_FLAGS ?=
+-IOTC_ARFLAGS ?=
+-BSP_FLAGS ?=
+-IOTC_INCLUDE_FLAGS ?= -I.
+-IOTC_PROTO_COMPILER ?=
+-IOTC_BSP_DIR ?= $(LIBIOTC)/src/bsp
+-MD ?= @
+-
+-# TLS related configuration
+-IOTC_BSP_TLS ?= mbedtls
+-
+-# Cryptographic BSP implementation
+-IOTC_BSP_CRYPTO ?= $(IOTC_BSP_TLS)
+-
+-#detect if the build happen on Travis
+-ifdef TRAVIS_OS_NAME
+-IOTC_TRAVIS_BUILD=1
+-endif
+-
+-include make/mt-config/mt-presets.mk
+-
+-include make/mt-config/mt-config.mk
+-include make/mt-os/mt-os.mk
+-include make/mt-os/mt-$(IOTC_CONST_PLATFORM_CURRENT).mk
+-include make/mt-config/mt-examples.mk
+-include make/mt-config/tests/mt-gtest.mk
+-include make/mt-config/tests/mt-tests-tools.mk
+-include make/mt-config/tests/mt-tests-unit.mk
+-include make/mt-config/tests/mt-tests-integration.mk
+-include make/mt-config/tests/mt-tests-fuzz.mk
+-
+-
+-ifdef MAKEFILE_DEBUG
+-$(info ----- )
+-$(info -TOOLCHAIN- $$CC is [${CC}])
+-$(info -TOOLCHAIN- $$AR is [${AR}])
+-$(info ----- )
+-$(info -TESTS- $$IOTC_UTESTS is [${IOTC_UTESTS}])
+-$(info -TESTS- $$IOTC_TEST_BINDIR is [${IOTC_TEST_BINDIR}])
+-$(info -TESTS- $$IOTC_TEST_DIR is [${IOTC_TEST_DIR}])
+-$(info ----- )
+-$(info -EXAMPLES- $$IOTC_EXAMPLES is [${IOTC_EXAMPLES}])
+-$(info ----- )
+-endif
+-
+-#gather all binary directories
+-IOTC_BIN_DIRS := $(IOTC_EXAMPLE_BINDIR) $(IOTC_EXAMPLE_BINDIR)/internal $(IOTC_TEST_BINDIR) $(IOTC_TEST_TOOLS_BINDIR)
+-
+-#default test target always present cause tiny test cross-compiles
+-IOTC_TESTS_TARGETS := $(IOTC_UTESTS) $(IOTC_TEST_TOOLS_OBJS) $(IOTC_TEST_TOOLS)
+-
+-# default output file declaration
+-IOTC_COMPILER_OUTPUT ?= -o $@
+-
+-.PHONY: header
+-header:
+-	$(info )
+-	$(info # )
+-	$(info # Google IoT Core Embedded C Client Makefile )
+-	$(info #  Please see ./README.md for more information.)
+-	$(info # )
+-	$(info )
+-
+-.PHONY: build_output
+-build_output: header preset_output
+-	$(info .    CONFIG:          [${CONFIG}])
+-	$(info .    TARGET:          [${TARGET}])
+-	$(info .    COMPILER:        [$(CC)] )
+-	$(info )
+-
+-all: build_output $(XI)
+-
+-.PHONY: tests
+-tests: build_output utests gtests itests
+-
+-.PHONY: utests
+-utests: $(IOTC_UTESTS) $(IOTC_TEST_TOOLS_OBJS) $(IOTC_TEST_TOOLS)
+-	$(IOTC_RUN_UTESTS)
+-
+-.PHONY: itests
+-itests: $(IOTC_ITESTS) $(IOTC_TEST_TOOLS_OBJS) $(IOTC_TEST_TOOLS)
+-	$(IOTC_RUN_ITESTS)
+-
+-.PHONY: gtests
+-gtests: $(IOTC_GTESTS)
+-	$(IOTC_RUN_GTESTS)
+-
+-.PHONY: test_coverage
+-test_coverage:
+-	./tools/test_coverage.sh
+-
+-internal_examples: $(XI) $(IOTC_INTERNAL_EXAMPLES)
+-
+-linux:
+-	make CONFIG=$(CONFIG) TARGET=$(subst osx,linux,$(TARGET))
+-
+-buildtime:
+-	time bash -c make
+ 
+ clean:
+-	$(RM) -rf \
+-		$(IOTC_BINDIR) \
+-		$(IOTC_OBJDIR)
+-	$(MAKE) -C $(IOTC_TLS_LIB_SRC_DIR) clean
+-
+-clean_all: clean
+-	$(RM) -rf \
+-		$(IOTC_BINDIR_BASE) \
+-		$(IOTC_OBJDIR_BASE)
+-	$(RM) -rf $(IOTC_TEST_TOOLS_EXT_PROTOBUF_OBJS)
+-	$(RM) -rf $(CMOCKA_BUILD_DIR)
+-	$(RM) -rf $(IOTC_TEST_OBJDIR)
+-	$(RM) -rf $(IOTC_TLS_LIB_SRC_DIR)
+-
+-libiotc: $(XI)
+-
+-$(XI): $(IOTC_TLS_LIB_DEP) $(IOTC_CRYPTO_LIB_DEP) $(IOTC_PROTOFILES_C) $(IOTC_OBJS) $(IOTC_BUILD_PRECONDITIONS) | $(IOTC_BIN_DIRS)
+-	$(info [$(AR)] $@ )
+-	$(MD) $(AR) $(IOTC_ARFLAGS) $(IOTC_OBJS) $(IOTC_EXTRA_ARFLAGS)
+-
+-# protobuf compilation
+-$(IOTC_PROTOBUF_GENERATED)/%.pb-c.c : $(IOTC_PROTO_DIR)/%.proto
+-	@-mkdir -p $(dir $@)
+-	$(IOTC_PROTO_COMPILER) --c_out=$(IOTC_PROTOBUF_GENERATED) --proto_path=$(IOTC_PROTO_DIR) $<
+-
+-# defining dependencies for object files generated by gcc -MM
+-# Autodependencies with GNU make: http://scottmcpeak.com/autodepend/autodepend.html
+--include $(IOTC_TEST_TOOLS_OBJS:.o=.d)
+-
+-# specific compiler flags for utest objects
+-$(IOTC_UTEST_OBJDIR)/%.o : $(IOTC_UTEST_SOURCE_DIR)/%.c $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_UTEST_CONFIG_FLAGS) $(IOTC_UTEST_INCLUDE_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(MD) $(CC) $(IOTC_UTEST_CONFIG_FLAGS) $(IOTC_UTEST_INCLUDE_FLAGS) -MM $< -MT $@ -MF $(@:.o=.d)
+-
+-# specific compiler flags for gtest objects
+-$(IOTC_GTEST_OBJDIR)/%.o : $(LIBIOTC_SRC)/%.cc $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CXX)] $@)
+-	$(MD) $(CXX) $(IOTC_GTEST_CONFIG_FLAGS) $(IOTC_GTEST_CXX_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(MD) $(CXX) $(IOTC_GTEST_CONFIG_FLAGS) $(IOTC_GTEST_CXX_FLAGS) -MM $< -MT $@ -MF $(@:.o=.d)
+-
+-# specific compiler flags for libiotc_driver
+-$(IOTC_OBJDIR)/tests/tools/iotc_libiotc_driver/%.o : $(LIBIOTC)/src/tests/tools/iotc_libiotc_driver/%.c $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) $(IOTC_TEST_TOOLS_INCLUDE_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) $(IOTC_TEST_TOOLS_INCLUDE_FLAGS) -MM $< -MT $@ -MF $(@:.o=.d)
+-
+--include $(IOTC_OBJS:.o=.d)
+-
+-# C source files
+-$(IOTC_OBJDIR)/%.o : $(LIBIOTC)/src/%.c $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(IOTC_POST_COMPILE_ACTION_CC)
+-
+-$(IOTC_OBJDIR)/third_party/%.o : $(LIBIOTC)/third_party/%.c $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(IOTC_POST_COMPILE_ACTION_CC)
+-
+-# C++ source files
+-$(IOTC_OBJDIR)/%.o : $(LIBIOTC)/src/%.cc $(IOTC_BUILD_PRECONDITIONS)
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CXX)] $@)
+-	$(MD) $(CXX) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_CXX_FLAGS) $(IOTC_INCLUDE_FLAGS) -c $< $(IOTC_COMPILER_OUTPUT)
+-	$(IOTC_POST_COMPILE_ACTION_CXX)
+-
+-###
+-#### Builtin root CA certificates
+-###
+-IOTC_BUILTIN_ROOTCA_CERTS := $(LIBIOTC)/res/trusted_RootCA_certs/roots.pem
+-
+-$(IOTC_BUILTIN_ROOTCA_CERTS):
+-	curl -s "https://pki.goog/gtsltsr/gtsltsr.crt" \
+-		| openssl x509 -inform der -outform pem \
+-		> $@
+-
+-	curl -s "https://pki.goog/gsr4/GSR4.crt" \
+-		| openssl x509 -inform der -outform pem \
+-		>> $@
+-
+-.PHONY: update_builtin_cert_buffer
+-update_builtin_cert_buffer: $(IOTC_BUILTIN_ROOTCA_CERTS)
+-	./tools/create_buffer.py \
+-		--file_name $< \
+-		--array_name iotc_RootCA_list \
+-		--out_path ./src/libiotc/tls/certs \
+-		--no-pretend
+-
+-# gather all of the binary directories
+-IOTC_RESOURCE_FILES := $(IOTC_BUILTIN_ROOTCA_CERTS)
+-
+-ifneq (,$(findstring posix_fs,$(CONFIG)))
+-IOTC_PROVIDE_RESOURCE_FILES = ON
+-endif
+-
+-###
+-#### EXAMPLES
+-###
+--include $(IOTC_EXAMPLE_OBJDIR)/*.d
+-
+-$(IOTC_EXAMPLE_BINDIR)/internal/%: $(XI)
+-	$(info [$(CC)] $@)
+-	@-mkdir -p $(IOTC_EXAMPLE_OBJDIR)/$(subst $(IOTC_EXAMPLE_BINDIR)/,,$(dir $@))
+-	$(MD) $(CC) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS)$(IOTC_INCLUDE_FLAGS) -L$(IOTC_BINDIR) $(XI) $(LIBIOTC)/examples/common/src/commandline.c $(IOTC_EXAMPLE_DIR)/$(subst $(IOTC_EXAMPLE_BINDIR),,$@).c $(IOTC_LIB_FLAGS) $(IOTC_COMPILER_OUTPUT)
+-	$(MD) $(CC) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) -MM $(IOTC_EXAMPLE_DIR)/$(subst $(IOTC_EXAMPLE_BINDIR),,$@).c -MT $@ -MF $(IOTC_EXAMPLE_OBJDIR)/$(subst $(IOTC_EXAMPLE_BINDIR)/,,$@).d
+-
+-###
+-#### TEST TOOLS
+-###
+--include $(IOTC_TEST_TOOLS_OBJDIR)/*.d
+-
+-$(IOTC_TEST_TOOLS_BINDIR)/%: $(XI) $(IOTC_TEST_TOOLS_OBJS)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) -L$(IOTC_BINDIR) $(IOTC_TEST_TOOLS_OBJS) $(IOTC_TEST_TOOLS_SRCDIR)/$(notdir $@)/$(notdir $@).c $(IOTC_LIB_FLAGS) $(IOTC_COMPILER_OUTPUT)
+-	@-mkdir -p $(IOTC_TEST_TOOLS_OBJDIR)
+-	$(MD) $(CC) $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS) -MM $(IOTC_TEST_TOOLS_SRCDIR)/$(notdir $@)/$(notdir $@).c -MT $@ -MF $(IOTC_TEST_TOOLS_OBJDIR)/$(notdir $@).d
+-	@#$@
+-
+-###
+-#### TESTS
+-###
+-# dependencies for unit test binary
+-IOTC_UTESTS_DEPENDENCIES_FILE = $(IOTC_UTEST_OBJDIR)/$(notdir $(IOTC_UTESTS)).d
+--include $(IOTC_UTESTS_DEPENDENCIES_FILE)
+-
+-IOTC_GTESTS_DEPENDENCIES_FILE = $(IOTC_GTEST_OBJDIR)/$(notdir $(IOTC_GTESTS)).d
+--include $(IOTC_GTESTS_DEPENDENCIES_FILE)
+-
+-$(IOTC_UTESTS): $(XI) $(IOTC_UTEST_OBJS) $(TINY_TEST_OBJ)
+-	$(info [$(CC)] $@)
+-	@-mkdir -p $(IOTC_UTEST_OBJDIR)
+-	$(MD) $(CC) $(IOTC_UTEST_CONFIG_FLAGS) $(IOTC_UTEST_INCLUDE_FLAGS) -L$(IOTC_BINDIR) $(IOTC_UTEST_SUITE_SOURCE) $(IOTC_UTEST_OBJS) $(TINY_TEST_OBJ) $(IOTC_LIB_FLAGS) $(IOTC_COMPILER_OUTPUT)
+-	$(MD) $(CC) $(IOTC_UTEST_CONFIG_FLAGS) $(IOTC_UTEST_INCLUDE_FLAGS) -MM $(IOTC_UTEST_SUITE_SOURCE) -MT $@ -MF $(IOTC_UTESTS_DEPENDENCIES_FILE)
+-
+-$(IOTC_GTESTS): $(XI) $(IOTC_GTEST_OBJS) $(IOTC_UTEST_UTIL_OBJS) $(GTEST_OBJS) $(GMOCK_OBJS)
+-	$(info [$(CXX)] $@)
+-	@-mkdir -p $(IOTC_GTEST_OBJDIR)
+-	$(MD) $(CXX) -no-pie $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_GTEST_CONFIG_FLAGS) $(IOTC_GTEST_CXX_FLAGS) -L$(IOTC_BINDIR) $(IOTC_GTEST_OBJS) $(GTEST_OBJS) $(GMOCK_OBJS) $(IOTC_UTEST_UTIL_OBJS) $(IOTC_LIB_FLAGS) $(IOTC_COMPILER_OUTPUT)
+-
+-# dependencies for integration test binary
+-ifneq ($(IOTC_CONST_PLATFORM_CURRENT),$(IOTC_CONST_PLATFORM_ARM))
+-
+--include $(IOTC_ITEST_OBJS:.o=.d)
+-
+-$(IOTC_ITESTS): $(XI) $(CMOCKA_LIBRARY_DEPS) $(IOTC_ITEST_OBJS)
+-	$(info [$(CC)] $@)
+-	$(MD) $(CC) $(IOTC_ITEST_OBJS) $(IOTC_ITESTS_CFLAGS) -L$(IOTC_BINDIR) $(IOTC_LIB_FLAGS) $(CMOCKA_LIBRARY) $(IOTC_COMPILER_OUTPUT)
+-endif
+-
+-$(IOTC_FUZZ_TESTS_BINDIR)/%: $(IOTC_FUZZ_TESTS_SOURCE_DIR)/%.cpp
+-	@-mkdir -p $(dir $@)
+-	$(info [$(CXX)] $@)
+-	$(MD) $(CXX) $< $(IOTC_CONFIG_FLAGS) $(IOTC_INCLUDE_FLAGS) -L$(IOTC_BINDIR) -L$(IOTC_LIBFUZZER_DOWNLOAD_DIR) $(IOTC_LIB_FLAGS) $(IOTC_FUZZ_TEST_LIBRARY) $(IOTC_COMPILER_OUTPUT)
+-
+-$(IOTC_FUZZ_TESTS): $(XI)
+-
+-.PHONY: fuzz_tests
+-fuzz_tests: build_output $(IOTC_LIBFUZZER) $(IOTC_FUZZ_TESTS) $(IOTC_FUZZ_TESTS_CORPUS_DIRS)
+-	$(foreach fuzztest, $(IOTC_FUZZ_TESTS), $(call IOTC_RUN_FUZZ_TEST,$(fuzztest)))
+-
+-.PHONY: static_analysis
+-static_analysis:  $(IOTC_SOURCES:.c=.sa)
+-
+-NOW:=$(shell date +"%F-%T")
+-
+-$(LIBIOTC)/src/%.sa:
+-	$(info [clang-tidy] $(@:.sa=.c))
+-	@clang-tidy --checks='clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*' $(@:.sa=.c) >> static_analysis_$(NOW).log -- $(IOTC_CONFIG_FLAGS) $(IOTC_COMMON_COMPILER_FLAGS) $(IOTC_C_FLAGS) $(IOTC_INCLUDE_FLAGS)
+-
+-$(IOTC_BIN_DIRS):
+-	@mkdir -p $@
+-ifdef IOTC_PROVIDE_RESOURCE_FILES
+-	@cp $(IOTC_RESOURCE_FILES) $@
+-endif
+-
+-libiotc: $(XI)
++	rm -rf $(objdir)
+ 
+-update_docs_branch:
+-	-rm -rf doc/html
+-	doxygen && cd doc/html \
+-		&& git init \
+-		&& git remote add github git@github.com:googlecloudplatform/iotcore-sdk-embedded-c \
+-		&& git add . \
+-		&& git commit -m "[docs] Regenerated documentation for $(REV)" \
+-		&& git push github master:gh-pages -f
++-include ${DEPS}
+diff --git a/examples/common/src/commandline.c b/examples/common/src/commandline.c
+index 6299326..c1e5dfb 100644
+--- a/examples/common/src/commandline.c
++++ b/examples/common/src/commandline.c
+@@ -18,155 +18,6 @@
+  * This module implements a command line argument parser
+  */
+ 
+-#include "commandline.h"
+-#include <assert.h>
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include "iotc.h"
+ 
+-#ifndef IOTC_CROSS_TARGET
+-#include <getopt.h>
+-#define IOTC_EXAMPLE_DEFAULT_QOS IOTC_MQTT_QOS_AT_LEAST_ONCE
+-#else
+-#define IOTC_EXAMPLE_DEFAULT_QOS IOTC_MQTT_QOS_AT_MOST_ONCE
+-#endif /* IOTC_CROSS_TARGET */
+ 
+-void iotc_usage(const char* options, unsigned options_length);
+ 
+-iotc_mqtt_qos_t iotc_example_qos = IOTC_EXAMPLE_DEFAULT_QOS;
+-
+-#define DEFAULT_PRIVATE_KEY_FIILENAME "ec_private.pem"
+-
+-const char* iotc_project_id;
+-const char* iotc_device_path;
+-const char* iotc_publish_topic;
+-const char* iotc_publish_message;
+-const char* iotc_private_key_filename;
+-
+-int iotc_parse(int argc, char** argv, char* valid_options,
+-               unsigned options_length) {
+-  int c;
+-  int iotc_help_flag = 0;
+-  iotc_project_id = NULL;
+-  iotc_device_path = NULL;
+-  iotc_publish_topic = NULL;
+-  iotc_private_key_filename = DEFAULT_PRIVATE_KEY_FIILENAME;
+-  iotc_publish_message = "Hello From Your IoTC client!";
+-
+-  while (1) {
+-    static struct option long_options[] = {
+-        {"help", no_argument, 0, 'h'},
+-        {"project_id", required_argument, 0, 'p'},
+-        {"device_path", required_argument, 0, 'd'},
+-        {"publish_topic", required_argument, 0, 't'},
+-        {"publish_message", required_argument, 0, 'm'},
+-        {"private_key_filename", optional_argument, 0, 'f'},
+-        {0, 0, 0, 0}};
+-
+-    /* getopt_long stores the option index here. */
+-    int option_index = 0;
+-
+-    c = getopt_long(argc, argv, valid_options, long_options, &option_index);
+-
+-    /* Detect the end of the options. */
+-    if (-1 == c) {
+-      break;
+-    }
+-
+-    switch (c) {
+-      case 'p':
+-        iotc_project_id = optarg;
+-        break;
+-      case 'd':
+-        iotc_device_path = optarg;
+-        break;
+-      case 't':
+-        iotc_publish_topic = optarg;
+-        break;
+-      case 'm':
+-        iotc_publish_message = optarg;
+-        break;
+-      case 'f':
+-        iotc_private_key_filename = optarg;
+-        break;
+-      case 'h':
+-      default:
+-        iotc_help_flag = 1;
+-        break;
+-    }
+-  }
+-
+-  /* Print any unrecognized command line arguments. */
+-  if (optind < argc) {
+-    printf(
+-        "The application could not recognize the following non-option "
+-        "arguments: ");
+-    while (optind < argc) {
+-      printf("%s ", argv[optind++]);
+-    }
+-    putchar('\n');
+-  }
+-  putchar('\n');
+-
+-  if (1 == iotc_help_flag) /* Print the usage statement */
+-  {
+-    iotc_usage(valid_options, options_length);
+-    return (
+-        -1); /* Don't run the application if -h --help was on the commandline */
+-  }
+-
+-  return (0);
+-}
+-
+-void iotc_usage(const char* options, unsigned options_length) {
+-  assert(NULL != options);
+-
+-  /* For debugging printf( "options = %s %d\n", options, options_length ); */
+-
+-  printf("Usage:\n");
+-  while (0 < options_length) {
+-    /* printf( "parsing option %c\n", *options ); */
+-    switch (*options) {
+-      case 'p':
+-        printf(
+-            "-p --project_id\n\tProvide the project_id your device is "
+-            "registered in "
+-            "Cloud IoT Core.\n");
+-        break;
+-      case 'd':
+-        printf(
+-            "-d --device_path\n\tProvide the full path of your device. For "
+-            "example:\n"
+-            "\t\tprojects/<project_id>/locations/<cloud_region>/registries/"
+-            "<registry_id>/devices/<device_id>\n");
+-        break;
+-      case 't':
+-        printf("-t --publish_topic\n\tThe topic on which to subscribe.\n");
+-        break;
+-      case 'm':
+-        printf(
+-            "-m --publish_message\n\tThe message to publish. A shell quoted "
+-            "string of characters.\n");
+-        break;
+-      case 'f':
+-        printf(
+-            "-f --private_key_filename\n\tThe filename, including path from "
+-            "cwd,\n");
+-        printf(" \t of the device identifying private_key. Defaults to: %s\n",
+-               DEFAULT_PRIVATE_KEY_FIILENAME);
+-        break;
+-      case 'h': /* Don't print anything for the help option since we're printing
+-                   usage */
+-        break;
+-      case ':': /* We'll skip the ':' character since it's not an option. */
+-        break;
+-      case '\0':
+-        break;
+-      default:
+-        printf("WARNING: Option %c not recognized by usage()\n", *options);
+-    }
+-    ++options;
+-    --options_length;
+-  }
+-  printf("\n");
+-}
+diff --git a/examples/common/src/commandline.h b/examples/common/src/commandline.h
+index 16d22e9..88be98c 100644
+--- a/examples/common/src/commandline.h
++++ b/examples/common/src/commandline.h
+@@ -18,17 +18,7 @@
+  * This module implements a command line argument parser.
+  */
+ 
+-#include <iotc_mqtt.h>
+-
+-/* Flags set by commandline arguments. */
+-extern iotc_mqtt_qos_t iotc_example_qos;
+ 
+ /* Parameters returned by the parser. These will be in a structure someday. */
+-extern const char* iotc_project_id;
+-extern const char* iotc_device_path;
+-extern const char* iotc_publish_topic;
+-extern const char* iotc_publish_message;
+-extern const char* iotc_private_key_filename;
+ 
+-int iotc_parse(int argc, char** argv, char* valid_options,
+-               const unsigned options_length);
++
+diff --git a/examples/common/src/example_utils.c b/examples/common/src/example_utils.c
+index abfd930..9122202 100644
+--- a/examples/common/src/example_utils.c
++++ b/examples/common/src/example_utils.c
+@@ -20,64 +20,51 @@
+ 
+ #include "commandline.h"
+ #include "example_utils.h"
+-
++#include <stdio.h>
++#include <string.h>
++#include <kernel/os.h>
++#include <kernel/spi-mem.h>
++#include <unistd.h>
++#include <kernel/flash.h>
++#include <kernel/gpio.h>
++/* for print_ver */
++#include "utils.h"
++
++#define LED_PIN 14
+ #define IOTC_UNUSED(x) (void)(x)
+ 
++char *subscribe_topic_command;
++int led_pin = 1 << LED_PIN;
+ extern iotc_crypto_key_data_t iotc_connect_private_key_data;
+ 
+ static iotc_timed_task_handle_t delayed_publish_task =
+     IOTC_INVALID_TIMED_TASK_HANDLE;
+ 
+-int iotc_example_handle_command_line_args(int argc, char* argv[]) {
+-  char options[] = "h:p:d:t:m:f:";
+-  int missingparameter = 0;
+-  int retval = 0;
+-
+-  /* log the executable name and library version */
+-  printf("\n%s\n%s\n", argv[0], iotc_cilent_version_str);
+-
+-  /* Parse the argv array for ONLY the options specified in the options string
+-   */
+-  retval = iotc_parse(argc, argv, options, sizeof(options));
+-
+-  if (-1 == retval) {
+-    /* iotc_parse has returned an error, and has already logged the error
+-       to the console. Therefore just silently exit here. */
+-    return -1;
+-  }
++char *gcp_prvate_pem;
++int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
++                                          size_t buf_len) {
+ 
+-  /* Check to see that the required parameters were all present on the command
+-   * line */
+-  if (NULL == iotc_project_id) {
+-    missingparameter = 1;
+-    printf("-p --project_id is required\n");
+-  }
++    /* Request led pin and set as output */
+ 
+-  if (NULL == iotc_device_path) {
+-    missingparameter = 1;
+-    printf("-d --device_path is required\n");
+-  }
++    os_gpio_request(led_pin);
++    os_gpio_set_output(led_pin);
++    os_gpio_clr_pin(led_pin);
++    
++  int rc;
+ 
+-  if (NULL == iotc_publish_topic) {
+-    missingparameter = 1;
+-    printf("-t --publish_topic is required\n");
+-  }
++  rc = utils_mount_rootfs();
+ 
+-  if (1 == missingparameter) {
+-    /* Error has already been logged, above.  Silently exit here */
+-    printf("\n");
+-    return -1;
++  if(rc < 0) {
++	os_printf("Reading the certs and key in rooFS failed, cant proceed. \n"
++			"Please program needed files in rootFS...\n");
++	return rc;
+   }
+ 
+-  return 0;
+-}
+-
+-int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+-                                          size_t buf_len) {
+   FILE* fp = fopen(iotc_private_key_filename, "rb");
++
+   if (fp == NULL) {
+-    printf("ERROR!\n");
+-    printf(
++    os_printf("ERROR!\n");
++    os_printf(
+         "\tMissing Private Key required for JWT signing.\n"
+         "\tPlease copy and paste your device's EC private key into\n"
+         "\ta file with the following path based on this executable's\n"
+@@ -93,7 +80,7 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+   rewind(fp);
+ 
+   if ((size_t)file_size > buf_len) {
+-    printf(
++    os_printf(
+         "private key file size of %lu bytes is larger that certificate buffer "
+         "size of %lu bytes\n",
+         file_size, (long)buf_len);
+@@ -105,15 +92,46 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+   fclose(fp);
+ 
+   if (bytes_read != file_size) {
+-    printf("could not fully read private key file\n");
++    os_printf("could not fully read private key file\n");
+     return -1;
+   }
+ 
+   return 0;
+ }
+ 
++void iotc_mqttlogic_subscribe_callback(
++    iotc_context_handle_t in_context_handle, iotc_sub_call_type_t call_type,
++    const iotc_sub_call_params_t *const params, iotc_state_t state,
++    void *user_data)
++{
++    IOTC_UNUSED(in_context_handle);
++    IOTC_UNUSED(call_type);
++    IOTC_UNUSED(state);
++    IOTC_UNUSED(user_data);
++    if (params != NULL && params->message.topic != NULL) {
++
++        os_printf("Subscription Topic: %s", params->message.topic);
++        char *sub_message = (char *)os_alloc(params->message.temporary_payload_data_length + 1);
++        if (sub_message == NULL) {
++            os_printf("Failed to allocate memory");
++            return;
++        }
++        memcpy(sub_message, params->message.temporary_payload_data, params->message.temporary_payload_data_length);
++        sub_message[params->message.temporary_payload_data_length] = '\0';
++        os_printf("Message Payload: %s ", sub_message);
++
++            if (!strcmp(sub_message,"{\"LED\": ON}")) {
++                  os_gpio_set_pin(led_pin);
++            } else if (!strcmp(sub_message,"{\"LED\": OFF}")) {
++                     os_gpio_clr_pin(led_pin);
++            }
++        os_free(sub_message);
++    }
++}
++
+ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+                                  void* data, iotc_state_t state) {
++
+   iotc_connection_data_t* conn_data = (iotc_connection_data_t*)data;
+ 
+   if (NULL == conn_data) {
+@@ -124,8 +142,12 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+     /* IOTC_CONNECTION_STATE_OPENED means that the connection has been
+        established and the IoTC Client is ready to send/recv messages */
+     case IOTC_CONNECTION_STATE_OPENED:
+-      printf("connected to %s:%d\n", conn_data->host, conn_data->port);
++      os_printf("connected to %s:%d\n", conn_data->host, conn_data->port);
++
+ 
++        subscribe_topic_command = "/devices/atest-dev/commands/#";
++      iotc_subscribe(in_context_handle, subscribe_topic_command, IOTC_MQTT_QOS_AT_LEAST_ONCE,
++                  &iotc_mqttlogic_subscribe_callback, /*user_data=*/NULL);
+       /* Publish immediately upon connect. 'publish_function' is defined
+          in this example file and invokes the IoTC API to publish a
+          message. */
+@@ -143,7 +165,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+        is contained in the 'state' variable. Here we log the error state and
+        exit out of the application. */
+     case IOTC_CONNECTION_STATE_OPEN_FAILED:
+-      printf("ERROR!\tConnection has failed reason %d : %s\n\n", state,
++      os_printf("ERROR!\tConnection has failed reason %d : %s\n\n", state,
+              iotc_get_state_string(state));
+ 
+       /* exit it out of the application by stopping the event loop. */
+@@ -163,6 +185,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+          registered activities. Using cancel function on handler will remove the
+          handler from the timed queue which prevents the registered handle to be
+          called when there is no connection. */
++      os_free(subscribe_topic_command);
+       if (IOTC_INVALID_TIMED_TASK_HANDLE != delayed_publish_task) {
+         iotc_cancel_timed_task(delayed_publish_task);
+         delayed_publish_task = IOTC_INVALID_TIMED_TASK_HANDLE;
+@@ -174,7 +197,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+          * in this example. */
+         iotc_events_stop();
+       } else {
+-        printf("connection closed - reason %d : %s!\n", state,
++        os_printf("connection closed - reason %d : %s!\n", state,
+                iotc_get_state_string(state));
+         /* The disconnection was unforeseen.  Try to reconnect to the server
+            with the previously set username and client_id, but regenerate
+@@ -187,7 +210,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+                                         &iotc_connect_private_key_data, jwt,
+                                         IOTC_JWT_SIZE, &bytes_written);
+         if (IOTC_STATE_OK != state) {
+-          printf(
++          os_printf(
+               "iotc_create_iotcore_jwt returned with error"
+               " when attempting to reconnect: %ul\n",
+               state);
+@@ -220,6 +243,8 @@ void publish_function(iotc_context_handle_t context_handle,
+ 
+   printf("publishing msg \"%s\" to topic: \"%s\"\n", iotc_publish_message,
+          iotc_publish_topic);
++  os_printf("publishing msg \"%s\" to topic: \"%s\"\n", iotc_publish_message,
++         iotc_publish_topic);
+ 
+   iotc_publish(context_handle, iotc_publish_topic, iotc_publish_message,
+                iotc_example_qos,
+diff --git a/examples/common/src/example_utils.h b/examples/common/src/example_utils.h
+index 1f4c4e0..ed4566e 100644
+--- a/examples/common/src/example_utils.h
++++ b/examples/common/src/example_utils.h
+@@ -18,6 +18,15 @@
+ 
+ #include <iotc.h>
+ 
++/* Flags set by commandline arguments. */
++extern iotc_mqtt_qos_t iotc_example_qos;
++
++extern const char* iotc_project_id;
++extern const char* iotc_device_path;
++extern const char* iotc_publish_topic;
++extern const char* iotc_publish_message;
++extern const char* iotc_private_key_filename;
++
+ /* Parses and manages commandline arguments. Project id, device path and publish
+  * topic are require to be passed as command line arguments. Prints
+  * notification if either of these is not found.
+diff --git a/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c b/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
+index 1c4eb92..a119544 100644
+--- a/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
++++ b/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
+@@ -29,23 +29,126 @@
+ #include <iotc_error.h>
+ #include <iotc_jwt.h>
+ #include <stdio.h>
++#include <kernel/os.h>
++#include <wifi/wcm.h>
++#include "wifi_utils.h"
++#include <assert.h>
++#include <iotc_mqtt.h>
++
++
++#ifndef IOTC_CROSS_TARGET
++#include <getopt.h>
++#define IOTC_EXAMPLE_DEFAULT_QOS IOTC_MQTT_QOS_AT_LEAST_ONCE
++#else
++#define IOTC_EXAMPLE_DEFAULT_QOS IOTC_MQTT_QOS_AT_MOST_ONCE
++#endif /* IOTC_CROSS_TARGET */
++
++#define DEFAULT_PRIVATE_KEY_FIILENAME "/data/ec_private.pem"
++
++struct wcm_handle *h;
++struct wcm_handle *wcm_handle;
++struct os_semaphore app_wcm_lock;
++
++const char* iotc_project_id;
++const char* iotc_device_path;
++const char* iotc_publish_topic;
++const char* iotc_publish_message;
++const char* iotc_private_key_filename;
++
++const char *ssid;
++const char *passphrase;
++int wcm_connect_success = 0;
+ 
+ /* Application variables. */
+ iotc_crypto_key_data_t iotc_connect_private_key_data;
+ char ec_private_key_pem[PRIVATE_KEY_BUFFER_SIZE] = {0};
+ iotc_context_handle_t iotc_context = IOTC_INVALID_CONTEXT_HANDLE;
+ 
++iotc_mqtt_qos_t iotc_example_qos = IOTC_EXAMPLE_DEFAULT_QOS;
++
++OS_APPINFO {.stack_size = 12288};
++
++void app_wcm_notify_cb(void *ctx, struct os_msg *msg)
++{
++    switch(msg->msg_type) {
++        case(WCM_NOTIFY_MSG_LINK_UP):
++          break;
++        case(WCM_NOTIFY_MSG_LINK_DOWN):
++          os_sem_post(&app_wcm_lock);
++          break;
++        case(WCM_NOTIFY_MSG_ADDRESS):
++          break;
++        case WCM_NOTIFY_MSG_CONNECTED:
++          wcm_connect_success = 1;
++          os_sem_post(&app_wcm_lock);
++          break;
++    }
++    os_msg_release(msg);
++}
++
++bool app_wcm_connect(struct wcm_handle *wcm_h)
++{
++
++   struct network_profile *profile;
++   const char *np_conf_path = os_get_boot_arg_str("np_conf_path")?: NULL;
++   int rval;
++
++    wcm_notify_enable(wcm_h, app_wcm_notify_cb, NULL);
++
++    if (np_conf_path != NULL) {
++        /* Create a Network Profile from a configuration file in
++        *the file system*/
++        rval = network_profile_new_from_file_system(&profile, np_conf_path);
++    } else {
++        /* Create a Network Profile using BOOT ARGS*/
++        rval = network_profile_new_from_boot_args(&profile);
++    }
++    if (rval < 0) {
++        pr_err("could not create network profile %d\n", rval);
++        return 0;
++    }
++
++    rval = wcm_add_network_profile(wcm_h, profile);
++    if (rval <  0) {
++        pr_err("could not associate network profile to wcm %d\n", rval);
++        return 0;
++    }
++
++    wcm_auto_connect(wcm_h, 1);
++    os_sem_wait(&app_wcm_lock);
++    return false;
++}
++
+ /*  -main-
+     The main entry point for this example binary.
+ 
+     For information on creating the credentials required for your device to the
+     GCP IoT Core Service during development then please see the service's
+     quick start guide. */
+-
++       
+ int main(int argc, char* argv[]) {
+-  if (0 != iotc_example_handle_command_line_args(argc, argv)) {
+-    return -1;
+-  }
++  
++    /*Read the boot args*/
++    ssid = os_get_boot_arg_str("ssid") ?: "";
++    iotc_project_id = os_get_boot_arg_str("iotc_project_id") ?: "";
++    iotc_device_path = os_get_boot_arg_str("iotc_device_path") ?: "";
++    iotc_publish_topic = os_get_boot_arg_str("iotc_publish_topic") ?: "";
++    iotc_publish_message = os_get_boot_arg_str("iotc_publish_message") ?: "";
++    iotc_private_key_filename = DEFAULT_PRIVATE_KEY_FIILENAME;
++  
++    /*Connect to WiFi N/w*/
++    os_sem_init(&app_wcm_lock, 0);
++    wcm_handle = wcm_create(NULL);
++    app_wcm_connect(wcm_handle);
++    
++    if(!wcm_connect_success) {
++        os_printf("\n[APP]Error: Failed to connect to WiFi N/w");
++        return -1;
++    }
++    else
++    {
++        os_printf("connected with AP \n\r");
++    }
+ 
+   /* This example assumes the private key to be used to  sign the IoT Core
+      Connect JWT credential is a PEM encoded ES256 private key,
+@@ -56,9 +159,8 @@ int main(int argc, char* argv[]) {
+      documentation in include/iotc_types.h. */
+ 
+   /* Use the example utils function to load the key from disk into memory. */
+-  if (0 != load_ec_private_key_pem_from_posix_fs(ec_private_key_pem,
++ if (0 != load_ec_private_key_pem_from_posix_fs(ec_private_key_pem,
+                                                  PRIVATE_KEY_BUFFER_SIZE)) {
+-    printf("\nError loading IoT Core private key from disk.\n\n");
+     return -1;
+   }
+ 
+@@ -75,9 +177,7 @@ int main(int argc, char* argv[]) {
+   /* Initialize iotc library and create a context to use to connect to the
+    * GCP IoT Core Service. */
+   const iotc_state_t error_init = iotc_initialize();
+-
+   if (IOTC_STATE_OK != error_init) {
+-    printf(" iotc failed to initialize, error: %d\n", error_init);
+     return -1;
+   }
+ 
+@@ -86,7 +186,6 @@ int main(int argc, char* argv[]) {
+       to numerous topics. */
+   iotc_context = iotc_create_context();
+   if (IOTC_INVALID_CONTEXT_HANDLE >= iotc_context) {
+-    printf(" iotc failed to create context, error: %d\n", -iotc_context);
+     return -1;
+   }
+ 
+@@ -108,11 +207,8 @@ int main(int argc, char* argv[]) {
+       IOTC_JWT_SIZE, &bytes_written);
+ 
+   if (IOTC_STATE_OK != state) {
+-    printf("iotc_create_iotcore_jwt returned with error: %ul : %s\n", state,
+-           iotc_get_state_string(state));
+     return -1;
+   }
+-
+   iotc_connect(iotc_context, /*username=*/NULL, /*password=*/jwt,
+                /*client_id=*/iotc_device_path, connection_timeout,
+                keepalive_timeout, &on_connection_state_changed);
+diff --git a/src/bsp/crypto/mbedtls/iotc_bsp_crypto_mbedtls.c b/src/bsp/crypto/mbedtls/iotc_bsp_crypto_mbedtls.c
+index cd82850..8943f94 100644
+--- a/src/bsp/crypto/mbedtls/iotc_bsp_crypto_mbedtls.c
++++ b/src/bsp/crypto/mbedtls/iotc_bsp_crypto_mbedtls.c
+@@ -33,8 +33,10 @@
+ static iotc_bsp_crypto_state_t _iotc_bsp_base64_encode(
+     unsigned char* dst_string, size_t dst_string_size, size_t* bytes_written,
+     const uint8_t* src_buf, size_t src_buf_size) {
++
+   const int result = mbedtls_base64_encode(
+       dst_string, dst_string_size, bytes_written, src_buf, src_buf_size);
++
+   switch (result) {
+     case 0:
+       return IOTC_BSP_CRYPTO_STATE_OK;
+@@ -50,6 +52,7 @@ static iotc_bsp_crypto_state_t _iotc_bsp_base64_encode(
+ iotc_bsp_crypto_state_t iotc_bsp_base64_encode_urlsafe(
+     unsigned char* dst_string, size_t dst_string_size, size_t* bytes_written,
+     const uint8_t* src_buf, size_t src_buf_size) {
++    
+   const iotc_bsp_crypto_state_t b64_result = _iotc_bsp_base64_encode(
+       dst_string, dst_string_size, bytes_written, src_buf, src_buf_size);
+ 
+@@ -78,6 +81,7 @@ iotc_bsp_crypto_state_t iotc_bsp_base64_encode_urlsafe(
+ iotc_bsp_crypto_state_t iotc_bsp_sha256(uint8_t* dst_buf_32_bytes,
+                                         const uint8_t* src_buf,
+                                         uint32_t src_buf_size) {
++                                        
+   if (NULL == dst_buf_32_bytes) {
+     return IOTC_BSP_CRYPTO_INVALID_INPUT_PARAMETER_ERROR;
+   }
+@@ -100,6 +104,7 @@ iotc_bsp_crypto_state_t iotc_bsp_ecc(
+     const iotc_crypto_key_data_t* private_key_data, uint8_t* dst_buf,
+     size_t dst_buf_size, size_t* bytes_written, const uint8_t* src_buf,
+     size_t src_buf_len) {
++
+   if (NULL == private_key_data || NULL == dst_buf || NULL == bytes_written ||
+       NULL == src_buf) {
+     return IOTC_BSP_CRYPTO_INVALID_INPUT_PARAMETER_ERROR;
+diff --git a/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c b/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c
+index d969bdb..83c8a97 100644
+--- a/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c
++++ b/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c
+@@ -23,11 +23,29 @@
+ 
+ #define MBEDTLS_DEBUG_LOG 1
+ 
+-#include <mbedtls/ctr_drbg.h>
+-#include <mbedtls/entropy.h>
+-#include <mbedtls/error.h>
++
+ #include <mbedtls/platform.h>
+-#include <mbedtls/ssl.h>
++
++#include <stdlib.h>
++#include <kernel/os.h>
++#include "mbedtls/net_sockets.h"
++#include "mbedtls/debug.h"
++#include "mbedtls/ssl.h"
++#include "mbedtls/entropy.h"
++#include "mbedtls/ctr_drbg.h"
++#include "mbedtls/error.h"
++#include "mbedtls/certs.h"
++#include <stdlib.h>
++#include <stdio.h>
++#include <string.h>
++#include <lwip/netdb.h>
++#include <kernel/semaphore.h>
++#include <kernel/mutex.h>
++#include <errno.h>
++#include "ssl_wrap/inc/ssl_wrap.h"
++#include "mqtt/include/mqtt.h"
++
++MQTTNetwork *mqtt_network= NULL;
+ 
+ /**
+  * @brief If the libiotc's certificate buffer's last character is '\n' (common
+@@ -69,6 +87,7 @@ int iotc_mbedtls_recv(void* libiotc_io_callback_context, unsigned char* buf,
+   iotc_bsp_tls_state_t ret = iotc_bsp_tls_recv_callback(
+       (char*)buf, len, libiotc_io_callback_context, &bytes_read);
+ 
++
+   switch (ret) {
+     case IOTC_BSP_TLS_STATE_OK:
+       return bytes_read;
+@@ -89,6 +108,7 @@ int iotc_mbedtls_recv(void* libiotc_io_callback_context, unsigned char* buf,
+ 
+ int iotc_mbedtls_send(void* libiotc_io_callback_context,
+                       const unsigned char* buf, size_t len) {
++
+   assert(NULL != libiotc_io_callback_context);
+   assert(NULL != buf);
+   assert(0 < len);
+@@ -106,6 +126,7 @@ int iotc_mbedtls_send(void* libiotc_io_callback_context,
+       return MBEDTLS_ERR_SSL_WANT_WRITE;
+     default:
+       iotc_bsp_debug_format("unexpected state %d", ret);
++
+ #if MBEDTLS_DEBUG_LOG
+       char errorString[80] = {'\0'};
+       mbedtls_strerror(ret, errorString, sizeof(errorString));
+@@ -120,20 +141,19 @@ int iotc_mbedtls_send(void* libiotc_io_callback_context,
+ iotc_bsp_tls_state_t iotc_bsp_tls_init(
+     iotc_bsp_tls_context_t** tls_context,
+     iotc_bsp_tls_init_params_t* init_params) {
+-  assert(NULL != tls_context);
+-  assert(NULL == *tls_context);
+-  assert(NULL != init_params);
+ 
++
++    
+   iotc_bsp_debug_format("[ %s ]", __FUNCTION__);
+ 
+   if (NULL == tls_context || NULL != *tls_context) {
+     return IOTC_BSP_TLS_STATE_INIT_ERROR;
+   }
+ 
+-  /* return state used for checking each mbedtls function */
++  // return state used for checking each mbedtls function 
+   int ret_state = 0;
+ 
+-  /* RNG related string */
++  // RNG related string 
+   const char personalization[] = "iotc_bsp_mbedtls_more_entropy_pls";
+ 
+ #ifdef MBEDTLS_PLATFORM_MEMORY
+@@ -141,18 +161,18 @@ iotc_bsp_tls_state_t iotc_bsp_tls_init(
+                                    init_params->fp_libiotc_free);
+ #endif
+ 
+-  mbedtls_tls_context_t* mbedtls_tls_context =
+-      (mbedtls_tls_context_t*)mbedtls_calloc(sizeof(mbedtls_tls_context_t), 1);
++    mbedtls_tls_context_t  *mbedtls_tls_context = (mbedtls_tls_context_t*)os_calloc(sizeof(mbedtls_tls_context_t), 1);
+ 
+-  /* save tls context, this value will be passed back in other BSP TLS functions
+-   */
++  // save tls context, this value will be passed back in other BSP TLS functions
++   
+   *tls_context = mbedtls_tls_context;
+-
+-  /* initialise the mbedtls context */
++     memset(mbedtls_tls_context, 0, sizeof(mbedtls_tls_context_t));
++     
++  // initialise the mbedtls context 
+   mbedtls_ssl_init(&mbedtls_tls_context->ssl);
+   mbedtls_ssl_config_init(&mbedtls_tls_context->conf);
+ 
+-  /* initialise RNG */
++  // initialise RNG 
+   mbedtls_entropy_init(&mbedtls_tls_context->entropy);
+   mbedtls_ctr_drbg_init(&mbedtls_tls_context->ctr_drbg);
+ 
+@@ -165,7 +185,7 @@ iotc_bsp_tls_state_t iotc_bsp_tls_init(
+     goto err_handling;
+   }
+ 
+-  /* register I/O functions */
++  // register I/O functions 
+   mbedtls_ssl_set_bio(&mbedtls_tls_context->ssl,
+                       init_params->libiotc_io_callback_context,
+                       iotc_mbedtls_send, iotc_mbedtls_recv, NULL);
+@@ -180,28 +200,28 @@ iotc_bsp_tls_state_t iotc_bsp_tls_init(
+ #else
+   mbedtls_ssl_conf_authmode(&mbedtls_tls_context->conf,
+                             MBEDTLS_SSL_VERIFY_REQUIRED);
++
+ #endif
+ 
+-  /* init & parse the CA certificates */
++  // init & parse the CA certificates 
+   mbedtls_x509_crt_init(&mbedtls_tls_context->cacert);
+ 
+-  /* this is required via the mbedtls in order to parse the PEM certificate
+-   * correctly - mbedtls requires '\0' at the end of the buffer that contains
+-   * PEM certificate */
++  // this is required via the mbedtls in order to parse the PEM certificate
++  // * correctly - mbedtls requires '\0' at the end of the buffer that contains
++  // * PEM certificate 
+   mbedtls_prepare_certificate_buffer(init_params->ca_cert_pem_buf,
+                                      init_params->ca_cert_pem_buf_length);
+ 
+   ret_state = mbedtls_x509_crt_parse(&mbedtls_tls_context->cacert,
+                                      init_params->ca_cert_pem_buf,
+                                      init_params->ca_cert_pem_buf_length);
+-
+   if (ret_state < 0) {
+     iotc_bsp_debug_format("failed ! mbedtls_x509_crt_parse returned %d",
+                           ret_state);
+     goto err_handling;
+   }
+ 
+-  /* set the ca certificate chain */
++  // set the ca certificate chain 
+   mbedtls_ssl_conf_ca_chain(&mbedtls_tls_context->conf,
+                             &mbedtls_tls_context->cacert, NULL);
+   mbedtls_ssl_conf_rng(&mbedtls_tls_context->conf, mbedtls_ctr_drbg_random,
+@@ -213,12 +233,12 @@ iotc_bsp_tls_state_t iotc_bsp_tls_init(
+                           ret_state);
+     goto err_handling;
+   }
+-
+-  /* setting the hostname will enable SNI if the SNI is enabled in config.h */
++  // setting the hostname will enable SNI if the SNI is enabled in config.h 
+   if ((ret_state = mbedtls_ssl_set_hostname(&mbedtls_tls_context->ssl,
+                                             init_params->domain_name)) != 0) {
+     iotc_bsp_debug_format(" failed  ! mbedtls_ssl_set_hostname returned %d",
+                           ret_state);
++
+     goto err_handling;
+   }
+ 
+@@ -229,24 +249,30 @@ err_handling:
+ }
+ 
+ iotc_bsp_tls_state_t iotc_bsp_tls_connect(iotc_bsp_tls_context_t* tls_context) {
++   int ret = -1;
+   assert(NULL != tls_context);
+ 
+   iotc_bsp_debug_format("[ %s ]", __FUNCTION__);
+ 
+   mbedtls_tls_context_t* mbedtls_tls_context = tls_context;
+ 
++  
+   const int ret_state = mbedtls_ssl_handshake(&mbedtls_tls_context->ssl);
+ 
+   switch (ret_state) {
+     case MBEDTLS_ERR_SSL_WANT_READ:
+       return IOTC_BSP_TLS_STATE_WANT_READ;
++
+     case MBEDTLS_ERR_SSL_WANT_WRITE:
+       return IOTC_BSP_TLS_STATE_WANT_WRITE;
++
+     case MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:
+       return IOTC_BSP_TLS_STATE_CERT_ERROR;
++    
+     case 0:
+       break;
+     default:
++
+ #if MBEDTLS_DEBUG_LOG
+     {
+       char errorString[80] = {'\0'};
+@@ -256,17 +282,18 @@ iotc_bsp_tls_state_t iotc_bsp_tls_connect(iotc_bsp_tls_context_t* tls_context) {
+     }
+ #endif
+       return IOTC_BSP_TLS_STATE_CONNECT_ERROR;
++     
+   }
+ 
+-  /* after succesfull connection unload the certificate */
++  // after succesfull connection unload the certificate 
+   mbedtls_x509_crt_free(&mbedtls_tls_context->cacert);
+-
+   return IOTC_BSP_TLS_STATE_OK;
+ }
+ 
+ iotc_bsp_tls_state_t iotc_bsp_tls_read(iotc_bsp_tls_context_t* tls_context,
+                                        uint8_t* data_ptr, size_t data_size,
+                                        int* bytes_read) {
++
+   assert(NULL != tls_context);
+   assert(NULL != data_ptr);
+   assert(0 < data_size);
+@@ -295,6 +322,7 @@ iotc_bsp_tls_state_t iotc_bsp_tls_read(iotc_bsp_tls_context_t* tls_context,
+ iotc_bsp_tls_state_t iotc_bsp_tls_write(iotc_bsp_tls_context_t* tls_context,
+                                         uint8_t* data_ptr, size_t data_size,
+                                         int* bytes_written) {
++
+   assert(NULL != tls_context);
+   assert(NULL != data_ptr);
+   assert(0 < data_size);
+@@ -343,7 +371,7 @@ iotc_bsp_tls_state_t iotc_bsp_tls_cleanup(
+     mbedtls_ctr_drbg_free(&mbedtls_tls_context->ctr_drbg);
+     mbedtls_entropy_free(&mbedtls_tls_context->entropy);
+ 
+-    mbedtls_free(*tls_context);
++   os_free(*tls_context);
+ 
+     *tls_context = NULL;
+   }
