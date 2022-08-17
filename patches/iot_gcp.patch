@@ -1,7 +1,7 @@
-From f7260b8470b8fdae0e0b59f8382537a9d54d030e Mon Sep 17 00:00:00 2001
+From b90f73e6d269c8ceba1cc67ba74baf9163265c3a Mon Sep 17 00:00:00 2001
 From: sapthas <ssajini@innophaseinc.com>
-Date: Wed, 17 Aug 2022 12:57:39 +0530
-Subject: [PATCH] create a patch file
+Date: Wed, 17 Aug 2022 18:04:15 +0530
+Subject: [PATCH] create patch file
 
 ---
  Makefile                                      | 421 +++++-------------
@@ -13,13 +13,13 @@ Subject: [PATCH] create a patch file
  .../crypto/mbedtls/iotc_bsp_crypto_mbedtls.c  |   5 +
  src/bsp/platform/t2/iotc_bsp_crypto.c         |  52 +++
  src/bsp/platform/t2/iotc_bsp_hton.h           |   7 +
- src/bsp/platform/t2/iotc_bsp_io_fs_t2.c       |  75 ++++
- src/bsp/platform/t2/iotc_bsp_io_net_t2.c      | 304 +++++++++++++
- src/bsp/platform/t2/iotc_bsp_mem_t2.c         |  35 ++
- src/bsp/platform/t2/iotc_bsp_rng_t2.c         |  57 +++
- src/bsp/platform/t2/iotc_bsp_time_t2.c        |  85 ++++
+ src/bsp/platform/t2/iotc_bsp_io_fs_t2.c       |  88 ++++
+ src/bsp/platform/t2/iotc_bsp_io_net_t2.c      | 316 +++++++++++++
+ src/bsp/platform/t2/iotc_bsp_mem_t2.c         |  46 ++
+ src/bsp/platform/t2/iotc_bsp_rng_t2.c         |  69 +++
+ src/bsp/platform/t2/iotc_bsp_time_t2.c        |  96 ++++
  src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c    |  84 ++--
- 15 files changed, 980 insertions(+), 549 deletions(-)
+ 15 files changed, 1039 insertions(+), 549 deletions(-)
  create mode 100644 src/bsp/platform/t2/iotc_bsp_crypto.c
  create mode 100644 src/bsp/platform/t2/iotc_bsp_hton.h
  create mode 100644 src/bsp/platform/t2/iotc_bsp_io_fs_t2.c
@@ -1164,25 +1164,38 @@ index 0000000..0c97cc9
 +#define ntohs(_x) __ntohs(_x)
 diff --git a/src/bsp/platform/t2/iotc_bsp_io_fs_t2.c b/src/bsp/platform/t2/iotc_bsp_io_fs_t2.c
 new file mode 100644
-index 0000000..590e791
+index 0000000..96a5ef3
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_io_fs_t2.c
-@@ -0,0 +1,75 @@
-+/* Copyright 2018-2020 Google LLC
-+ *
-+ * This is part of the Google Cloud IoT Device SDK for Embedded C.
-+ * It is licensed under the BSD 3-Clause license; you may not use this file
-+ * except in compliance with the License.
-+ *
-+ * You may obtain a copy of the License at:
-+ *  https://opensource.org/licenses/BSD-3-Clause
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+@@ -0,0 +1,88 @@
++/**
++  ******************************************************************************
++  * @file   iotc_bsp_io_fs_t2.c
++  *
++  * @brief  This file contains Talaria TWO file system functionalities used 
++  *         in google cloud demo application.
++   
++  *****************************************************************************
++  * @attention
++  *
++  *
++  *  Copyright (c) 2022, InnoPhase, Inc.
++  *
++  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++  *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++  *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++  *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++  *  POSSIBILITY OF SUCH DAMAGE.
++  *
++  *****************************************************************************
++  */
++  
 +#include <stdio.h>
 +#include <iotc_bsp_io_fs.h>
 +#include <kernel/os.h>
@@ -1245,25 +1258,37 @@ index 0000000..590e791
 +}
 diff --git a/src/bsp/platform/t2/iotc_bsp_io_net_t2.c b/src/bsp/platform/t2/iotc_bsp_io_net_t2.c
 new file mode 100644
-index 0000000..0d7913e
+index 0000000..ae367df
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_io_net_t2.c
-@@ -0,0 +1,304 @@
-+/* Copyright 2018-2020 Google LLC
-+ *
-+ * This is part of the Google Cloud IoT Device SDK for Embedded C.
-+ * It is licensed under the BSD 3-Clause license; you may not use this file
-+ * except in compliance with the License.
-+ *
-+ * You may obtain a copy of the License at:
-+ *  https://opensource.org/licenses/BSD-3-Clause
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+@@ -0,0 +1,316 @@
++/**
++  ******************************************************************************
++  * @file   iotc_bsp_io_net_t2.c
++  *
++  * @brief  This file contains Talaria TWO network layer functionalities used 
++  *         in google cloud demo application.
++   
++  *****************************************************************************
++  * @attention
++  *
++  *
++  *  Copyright (c) 2022, InnoPhase, Inc.
++  *
++  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++  *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++  *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++  *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++  *  POSSIBILITY OF SUCH DAMAGE.
++  *
++  *****************************************************************************
++  */
 +
 +#include <iotc_bsp_io_net.h>
 +#include <lwip/inet.h>
@@ -1555,25 +1580,37 @@ index 0000000..0d7913e
 +#endif
 diff --git a/src/bsp/platform/t2/iotc_bsp_mem_t2.c b/src/bsp/platform/t2/iotc_bsp_mem_t2.c
 new file mode 100644
-index 0000000..831189a
+index 0000000..29803ec
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_mem_t2.c
-@@ -0,0 +1,35 @@
-+/* Copyright 2018-2020 Google LLC
-+ *
-+ * This is part of the Google Cloud IoT Device SDK for Embedded C.
-+ * It is licensed under the BSD 3-Clause license; you may not use this file
-+ * except in compliance with the License.
-+ *
-+ * You may obtain a copy of the License at:
-+ *  https://opensource.org/licenses/BSD-3-Clause
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+@@ -0,0 +1,46 @@
++/**
++  ******************************************************************************
++  * @file   iotc_bsp_mem_t2.c
++  *
++  * @brief  This file contains Talaria TWO memory functionalities used 
++  *         in google cloud demo application.
++   
++  *****************************************************************************
++  * @attention
++  *
++  *
++  *  Copyright (c) 2022, InnoPhase, Inc.
++  *
++  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++  *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++  *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++  *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++  *  POSSIBILITY OF SUCH DAMAGE.
++  *
++  *****************************************************************************
++  */
 +
 +#include <iotc_bsp_mem.h>
 +#include <stdlib.h>
@@ -1591,30 +1628,41 @@ index 0000000..831189a
 +
 +void iotc_bsp_mem_free(void* ptr) { 
 +
-+   os_free(ptr);
-+    
++   os_free(ptr);  
 + }
 diff --git a/src/bsp/platform/t2/iotc_bsp_rng_t2.c b/src/bsp/platform/t2/iotc_bsp_rng_t2.c
 new file mode 100644
-index 0000000..0782d27
+index 0000000..9b04e9f
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_rng_t2.c
-@@ -0,0 +1,57 @@
-+/* Copyright 2018-2020 Google LLC
-+ *
-+ * This is part of the Google Cloud IoT Device SDK for Embedded C.
-+ * It is licensed under the BSD 3-Clause license; you may not use this file
-+ * except in compliance with the License.
-+ *
-+ * You may obtain a copy of the License at:
-+ *  https://opensource.org/licenses/BSD-3-Clause
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+@@ -0,0 +1,69 @@
++/**
++  ******************************************************************************
++  * @file   iotc_bsp_mem_t2.c
++  *
++  * @brief  This file contains Talaria TWO mbedtls functionalities used 
++  *         in google cloud demo application.
++   
++  *****************************************************************************
++  * @attention
++  *
++  *
++  *  Copyright (c) 2022, InnoPhase, Inc.
++  *
++  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++  *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++  *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++  *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++  *  POSSIBILITY OF SUCH DAMAGE.
++  *
++  *****************************************************************************
++  */
 +
 +#include <iotc_bsp_rng.h>
 +#include "mbedtls/config.h"
@@ -1659,28 +1707,39 @@ index 0000000..0782d27
 +
 diff --git a/src/bsp/platform/t2/iotc_bsp_time_t2.c b/src/bsp/platform/t2/iotc_bsp_time_t2.c
 new file mode 100644
-index 0000000..d4b28ce
+index 0000000..d9fcf1b
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_time_t2.c
-@@ -0,0 +1,85 @@
-+/* Copyright 2018-2020 Google LLC
-+ *
-+ * This is part of the Google Cloud IoT Device SDK for Embedded C.
-+ * It is licensed under the BSD 3-Clause license; you may not use this file
-+ * except in compliance with the License.
-+ *
-+ * You may obtain a copy of the License at:
-+ *  https://opensource.org/licenses/BSD-3-Clause
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+@@ -0,0 +1,96 @@
++/**
++  ******************************************************************************
++  * @file   iotc_bsp_mem_t2.c
++  *
++  * @brief  This file contains Talaria TWO SNTP client functionalities used 
++  *         in google cloud demo application.
++   
++  *****************************************************************************
++  * @attention
++  *
++  *
++  *  Copyright (c) 2022, InnoPhase, Inc.
++  *
++  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++  *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++  *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++  *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++  *  POSSIBILITY OF SUCH DAMAGE.
++  *
++  *****************************************************************************
++  */
 +
 +#include <iotc_bsp_time.h>
-+
 +#include <kernel/os.h>
 +#include <wifi/wcm.h>
 +#include <lwip/ip_addr.h>
