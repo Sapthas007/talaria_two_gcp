@@ -13,7 +13,7 @@ if __name__ == "__main__":
  
     ROOT_PATH=os.getcwd()
     os.system("cp  " +ROOT_PATH +"/patches/iot_gcp.patch iot-device-sdk-embedded-c/")
-    os.system("mv  " +ROOT_PATH +"/files/t2 iot-device-sdk-embedded-c/src/bsp/platform")
+    #os.system("mv  " +ROOT_PATH +"/files/t2 iot-device-sdk-embedded-c/src/bsp/platform")
 
     # clone GCP-sdk from GitHub
     #os.system("git clone https://github.com/GoogleCloudPlatform/iot-device-sdk-embedded-c.git")  
@@ -29,7 +29,8 @@ if __name__ == "__main__":
 
     os.chdir(ROOT_PATH +"/iot-device-sdk-embedded-c")
     # Apply patch file to gcp-sdk
-    cmd_path = "git apply iot_gcp.patch"
+    #cmd_path = "git apply iot_gcp.patch"
+    cmd_path = "git am < iot_gcp.patch"
     os.system(cmd_path)
 
     os.chdir("../")
