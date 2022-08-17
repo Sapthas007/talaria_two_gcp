@@ -1,3 +1,33 @@
+From 35182c6a0b78a08c0117efac9cdef4f1dbf0c23b Mon Sep 17 00:00:00 2001
+From: sapthas <ssajini@innophaseinc.com>
+Date: Tue, 16 Aug 2022 17:49:08 +0530
+Subject: [PATCH] patch file cretain
+
+---
+ Makefile                                      | 421 +++++-------------
+ examples/common/src/commandline.c             | 149 -------
+ examples/common/src/commandline.h             |  12 +-
+ examples/common/src/example_utils.c           | 123 +++--
+ examples/common/src/example_utils.h           |   9 +
+ .../src/iot_core_mqtt_client.c                | 120 ++++-
+ .../crypto/mbedtls/iotc_bsp_crypto_mbedtls.c  |   5 +
+ src/bsp/platform/t2/iotc_bsp_crypto.c         |  52 +++
+ src/bsp/platform/t2/iotc_bsp_hton.h           |   7 +
+ src/bsp/platform/t2/iotc_bsp_io_fs_T2.c       |  75 ++++
+ src/bsp/platform/t2/iotc_bsp_io_net_T2.c      | 304 +++++++++++++
+ src/bsp/platform/t2/iotc_bsp_mem_T2.c         |  35 ++
+ src/bsp/platform/t2/iotc_bsp_rng_T2.c         |  57 +++
+ src/bsp/platform/t2/iotc_bsp_time_T2.c        |  85 ++++
+ src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c    |  84 ++--
+ 15 files changed, 980 insertions(+), 558 deletions(-)
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_crypto.c
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_hton.h
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_io_fs_T2.c
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_io_net_T2.c
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_mem_T2.c
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_rng_T2.c
+ create mode 100644 src/bsp/platform/t2/iotc_bsp_time_T2.c
+
 diff --git a/Makefile b/Makefile
 index 7cc7072..f076b18 100644
 --- a/Makefile
@@ -1061,6 +1091,663 @@ index cd82850..8943f94 100644
    if (NULL == private_key_data || NULL == dst_buf || NULL == bytes_written ||
        NULL == src_buf) {
      return IOTC_BSP_CRYPTO_INVALID_INPUT_PARAMETER_ERROR;
+diff --git a/src/bsp/platform/t2/iotc_bsp_crypto.c b/src/bsp/platform/t2/iotc_bsp_crypto.c
+new file mode 100644
+index 0000000..f0061a6
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_crypto.c
+@@ -0,0 +1,52 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++/**
++ * Microchip's Cryptoauthlib implementation of crypto BSP.
++ * To be used for ATECC* secure elements.
++ */
++
++#include "iotc_bsp_crypto.h"
++#include "iotc_helpers.h"
++#include "iotc_macros.h"
++
++#include "cryptoauthlib.h"
++
++#define IOTC_CHECK_DEBUG_FORMAT(cnd, fmt, ...) \
++  if ((cnd)) {                                 \
++    iotc_debug_format(fmt, __VA_ARGS__);       \
++    goto err_handling;                         \
++  }
++
++iotc_bsp_crypto_state_t iotc_bsp_base64_encode_urlsafe(
++    unsigned char* dst_string, size_t dst_string_size, size_t* bytes_written,
++    const uint8_t* src_buf, size_t src_buf_size) {
++
++}
++
++iotc_bsp_crypto_state_t iotc_bsp_sha256(uint8_t* dst_buf_32_bytes,
++                                        const uint8_t* src_buf,
++                                        uint32_t src_buf_size) {
++
++}
++
++iotc_bsp_crypto_state_t iotc_bsp_ecc(
++    const iotc_crypto_key_data_t* private_key_data, uint8_t* dst_buf,
++    size_t dst_buf_size, size_t* bytes_written, const uint8_t* src_buf,
++    size_t src_buf_size) {
++
++}
++
+diff --git a/src/bsp/platform/t2/iotc_bsp_hton.h b/src/bsp/platform/t2/iotc_bsp_hton.h
+new file mode 100644
+index 0000000..0c97cc9
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_hton.h
+@@ -0,0 +1,7 @@
++#include <machine/endian.h>
++#include <stdio.h>
++
++#define htonl(_x) __htonl(_x)
++#define htons(_x) __htons(_x)
++#define ntohl(_x) __ntohl(_x)
++#define ntohs(_x) __ntohs(_x)
+diff --git a/src/bsp/platform/t2/iotc_bsp_io_fs_T2.c b/src/bsp/platform/t2/iotc_bsp_io_fs_T2.c
+new file mode 100644
+index 0000000..590e791
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_io_fs_T2.c
+@@ -0,0 +1,75 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++#include <stdio.h>
++#include <iotc_bsp_io_fs.h>
++#include <kernel/os.h>
++#include <kernel/spi-mem.h>
++#include <unistd.h>
++#include <kernel/flash.h>
++
++  FILE* fp ;
++iotc_bsp_io_fs_state_t iotc_bsp_io_fs_open(
++    const char* const resource_name, const size_t size,
++    const iotc_bsp_io_fs_open_flags_t open_flags,
++    iotc_bsp_io_fs_resource_handle_t* resource_handle_out) {
++  (void)resource_name;
++  (void)size;
++  (void)open_flags;
++  (void)resource_handle_out;
++
++  fp = fopen(resource_name, "r");
++
++  return IOTC_BSP_IO_FS_NOT_IMPLEMENTED;
++}
++
++iotc_bsp_io_fs_state_t iotc_bsp_io_fs_read(
++    const iotc_bsp_io_fs_resource_handle_t resource_handle, const size_t offset,
++    const uint8_t** buffer, size_t* const buffer_size) {
++  (void)resource_handle;
++  (void)offset;
++  (void)buffer;
++  (void)buffer_size;
++    fread(buffer, 1, (int)buffer_size,fp);
++
++  return IOTC_BSP_IO_FS_NOT_IMPLEMENTED;
++}
++
++iotc_bsp_io_fs_state_t iotc_bsp_io_fs_write(
++    const iotc_bsp_io_fs_resource_handle_t resource_handle,
++    const uint8_t* const buffer, const size_t buffer_size, const size_t offset,
++    size_t* const bytes_written) {
++  (void)resource_handle;
++  (void)buffer;
++  (void)buffer_size;
++  (void)offset;
++  (void)bytes_written;
++       fwrite(buffer, 1, (int)buffer_size, fp);
++
++  return IOTC_BSP_IO_FS_NOT_IMPLEMENTED;
++}
++
++iotc_bsp_io_fs_state_t iotc_bsp_io_fs_close(
++    const iotc_bsp_io_fs_resource_handle_t resource_handle) {
++  (void)resource_handle;
++   fclose(fp);
++  return IOTC_BSP_IO_FS_NOT_IMPLEMENTED;
++}
++
++iotc_bsp_io_fs_state_t iotc_bsp_io_fs_remove(const char* const resource_name) {
++  (void)resource_name;
++     unlink(resource_name);
++  return IOTC_BSP_IO_FS_NOT_IMPLEMENTED;
++}
+diff --git a/src/bsp/platform/t2/iotc_bsp_io_net_T2.c b/src/bsp/platform/t2/iotc_bsp_io_net_T2.c
+new file mode 100644
+index 0000000..3675cd9
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_io_net_T2.c
+@@ -0,0 +1,304 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <iotc_bsp_io_net.h>
++#include <lwip/inet.h>
++#include <errno.h>
++#include <lwip/sockets.h>
++#include <lwip/netdb.h>
++#include "iotc_macros.h"
++#include <kernel/os.h>
++#include "mbedtls/net_sockets.h"
++#include "mbedtls/debug.h"
++#include "mbedtls/ssl.h"
++#include "mbedtls/entropy.h"
++#include "mbedtls/ctr_drbg.h"
++#include "mbedtls/error.h"
++#include "mbedtls/certs.h"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#ifndef MAX
++#define MAX(a, b) (((a) > (b)) ? (a) : (b))
++#endif
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_socket_connect(
++    iotc_bsp_socket_t* iotc_socket, const char* host, uint16_t port,
++    iotc_bsp_socket_type_t socket_type) {
++  struct addrinfo hints;
++  struct addrinfo *result, *rp = NULL;
++  int status;
++  const char *port_num = "8883";
++
++  memset(&hints, 0, sizeof(hints));
++  hints.ai_family = AF_UNSPEC;
++  hints.ai_socktype = socket_type;
++  hints.ai_flags = 0;
++  hints.ai_protocol = 0;
++
++  // Address resolution.
++  status = lwip_getaddrinfo(host, port_num, &hints, &result);
++  
++  if (0 != status) {
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  for (rp = result; rp != NULL; rp = rp->ai_next) {
++
++    *iotc_socket = lwip_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
++    if (-1 == *iotc_socket) continue;
++
++    // Attempt to connect.
++    status = lwip_connect(*iotc_socket, rp->ai_addr, rp->ai_addrlen);
++    if (-1 != status) {
++       lwip_freeaddrinfo(result);
++       const int flags = lwip_fcntl(*iotc_socket, F_GETFL, 0);
++    
++	if (-1 == lwip_fcntl(*iotc_socket, F_SETFL, flags | O_NONBLOCK)) {
++		lwip_freeaddrinfo(result);
++	return IOTC_BSP_IO_NET_STATE_ERROR;
++	} 
++      	return IOTC_BSP_IO_NET_STATE_OK;
++    } else {
++        lwip_freeaddrinfo(result);
++        lwip_close(*iotc_socket);
++    }
++  }
++
++  return IOTC_BSP_IO_NET_STATE_ERROR;
++}
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_connection_check(
++    iotc_bsp_socket_t iotc_socket, const char* host, uint16_t port) {
++  IOTC_UNUSED(host);
++  IOTC_UNUSED(port);
++ 
++  int valopt = 0;
++  socklen_t lon = sizeof(int);
++
++  if (getsockopt(iotc_socket, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) <
++      0) {
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  if (valopt) {
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  return IOTC_BSP_IO_NET_STATE_OK;
++}
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_write(iotc_bsp_socket_t iotc_socket,
++                                              int* out_written_count,
++                                              const uint8_t* buf,
++                                              size_t count) {
++
++  if (NULL == out_written_count || NULL == buf) {
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  int errval = 0;
++  socklen_t lon = sizeof(int);
++
++  if (getsockopt(iotc_socket, SOL_SOCKET, SO_ERROR, (void*)(&errval), &lon) <
++      0) {
++    errval = errno;
++    errno = 0;
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  if (errval != 0) {
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  *out_written_count = lwip_write(iotc_socket, buf, count);
++
++  if (*out_written_count < 0) {
++    *out_written_count = 0;
++
++    errval = errno;
++    errno = 0;
++
++    if (EAGAIN == errval) {
++
++      return IOTC_BSP_IO_NET_STATE_BUSY;
++    }
++
++    if (ECONNRESET == errval || EPIPE == errval) {
++
++      return IOTC_BSP_IO_NET_STATE_CONNECTION_RESET;
++    }
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  return IOTC_BSP_IO_NET_STATE_OK;
++}
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_read(iotc_bsp_socket_t iotc_socket,
++                                             int* out_read_count, uint8_t* buf,
++                                             size_t count) {
++                                      
++  if (NULL == out_read_count || NULL == buf) {
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  int errval = 0;
++  *out_read_count = lwip_read(iotc_socket, buf, count);
++
++  if (*out_read_count < 0) {
++    *out_read_count = 0;
++
++    errval = errno;
++    errno = 0;
++
++    if (EAGAIN == errval) {
++
++      return IOTC_BSP_IO_NET_STATE_BUSY;
++    }
++
++    if (ECONNRESET == errval || EPIPE == errval) {
++
++      return IOTC_BSP_IO_NET_STATE_CONNECTION_RESET;
++    }
++
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  if (0 == *out_read_count) {
++
++    return IOTC_BSP_IO_NET_STATE_CONNECTION_RESET;
++  }
++
++  return IOTC_BSP_IO_NET_STATE_OK;
++}
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_close_socket(
++    iotc_bsp_socket_t* iotc_socket) {
++
++  if (NULL == iotc_socket) { 
++    return IOTC_BSP_IO_NET_STATE_ERROR;
++  }
++
++  shutdown(*iotc_socket, SHUT_RDWR);
++
++  lwip_close(*iotc_socket);
++
++  *iotc_socket = 0;
++
++  return IOTC_BSP_IO_NET_STATE_OK;
++}
++
++iotc_bsp_io_net_state_t iotc_bsp_io_net_select(
++    iotc_bsp_socket_events_t* socket_events_array,
++    size_t socket_events_array_size, long timeout_sec) {
++
++  fd_set rfds;
++  fd_set wfds;
++  fd_set efds;
++
++  FD_ZERO(&rfds);
++  FD_ZERO(&wfds);
++  FD_ZERO(&efds);
++
++  int max_fd_read = 0;
++  int max_fd_write = 0;
++  int max_fd_error = 0;
++
++  struct timeval tv = {0, 0};
++
++  /* translate the library socket events settings to the event sets used by
++   * posix select
++   */
++  size_t socket_id = 0;
++  for (socket_id = 0; socket_id < socket_events_array_size; ++socket_id) {
++    iotc_bsp_socket_events_t* socket_events = &socket_events_array[socket_id];
++
++    if (NULL == socket_events) {
++      return IOTC_BSP_IO_NET_STATE_ERROR;
++    }
++
++    if (1 == socket_events->in_socket_want_read) {
++      FD_SET(socket_events->iotc_socket, &rfds);
++      max_fd_read = socket_events->iotc_socket > max_fd_read
++                        ? socket_events->iotc_socket
++                        : max_fd_read;
++    }
++
++    if ((1 == socket_events->in_socket_want_write) ||
++        (1 == socket_events->in_socket_want_connect)) {
++      FD_SET(socket_events->iotc_socket, &wfds);
++      max_fd_write = socket_events->iotc_socket > max_fd_write
++                         ? socket_events->iotc_socket
++                         : max_fd_write;
++    }
++
++    if (1 == socket_events->in_socket_want_error) {
++      FD_SET(socket_events->iotc_socket, &efds);
++      max_fd_error = socket_events->iotc_socket > max_fd_error
++                         ? socket_events->iotc_socket
++                         : max_fd_error;
++    }
++  }
++
++  /* calculate max fd */
++  const int max_fd = MAX(max_fd_read, MAX(max_fd_write, max_fd_error));
++
++  tv.tv_sec = timeout_sec;
++
++  /* call the actual posix select */
++  const int result = lwip_select(max_fd + 1, &rfds, &wfds, &efds, &tv);
++
++  if (0 < result) {
++    /* translate the result back to the socket events structure */
++    for (socket_id = 0; socket_id < socket_events_array_size; ++socket_id) {
++      iotc_bsp_socket_events_t* socket_events = &socket_events_array[socket_id];
++
++      if (FD_ISSET(socket_events->iotc_socket, &rfds)) {
++        socket_events->out_socket_can_read = 1;
++      }
++
++      if (FD_ISSET(socket_events->iotc_socket, &wfds)) {
++        if (1 == socket_events->in_socket_want_connect) 
++          socket_events->out_socket_connect_finished = 1;
++        
++        if (1 == socket_events->in_socket_want_write) 
++          socket_events->out_socket_can_write = 1;
++
++      }
++
++      if (FD_ISSET(socket_events->iotc_socket, &efds)) 
++        socket_events->out_socket_error = 1;
++      
++    }
++    return IOTC_BSP_IO_NET_STATE_OK;
++  } else if (0 == result) {
++
++    return IOTC_BSP_IO_NET_STATE_TIMEOUT;
++  }
++
++  return IOTC_BSP_IO_NET_STATE_ERROR;
++}
++
++#ifdef __cplusplus
++}
++#endif
+diff --git a/src/bsp/platform/t2/iotc_bsp_mem_T2.c b/src/bsp/platform/t2/iotc_bsp_mem_T2.c
+new file mode 100644
+index 0000000..831189a
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_mem_T2.c
+@@ -0,0 +1,35 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <iotc_bsp_mem.h>
++#include <stdlib.h>
++#include <kernel/os.h>
++
++void* iotc_bsp_mem_alloc(size_t byte_count) {
++
++  return (void*)os_alloc(byte_count);
++}
++
++void* iotc_bsp_mem_realloc(void* ptr, size_t byte_count) {
++
++  return (void*)os_realloc(ptr, byte_count);
++}
++
++void iotc_bsp_mem_free(void* ptr) { 
++
++   os_free(ptr);
++    
++ }
+diff --git a/src/bsp/platform/t2/iotc_bsp_rng_T2.c b/src/bsp/platform/t2/iotc_bsp_rng_T2.c
+new file mode 100644
+index 0000000..0782d27
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_rng_T2.c
+@@ -0,0 +1,57 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <iotc_bsp_rng.h>
++#include "mbedtls/config.h"
++#include "mbedtls/entropy.h"
++#include "mbedtls/ctr_drbg.h"
++#include <stdio.h>
++
++static mbedtls_entropy_context entropy;
++static mbedtls_ctr_drbg_context ctr_drbg;
++
++void iotc_bsp_rng_init() {
++  const char personalization[] = "iotc_bsp_mbedtls_more_entropy_pls";
++
++  mbedtls_entropy_init(&entropy);
++  mbedtls_ctr_drbg_init(&ctr_drbg);
++
++  const int ret_state = mbedtls_ctr_drbg_seed(
++      &ctr_drbg, mbedtls_entropy_func, &entropy,
++      (const unsigned char*)personalization, sizeof(personalization));
++
++  if (ret_state != 0) {
++    printf(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret_state);
++    goto exit;
++  }
++
++exit:;
++}
++
++uint32_t iotc_bsp_rng_get() {
++  uint32_t random = 0;
++
++  mbedtls_ctr_drbg_random(&ctr_drbg, (unsigned char*)&random, 4); 
++  return random;
++}
++
++void iotc_bsp_rng_shutdown() {
++
++  mbedtls_ctr_drbg_free(&ctr_drbg);
++  mbedtls_entropy_free(&entropy);
++}
++
++
+diff --git a/src/bsp/platform/t2/iotc_bsp_time_T2.c b/src/bsp/platform/t2/iotc_bsp_time_T2.c
+new file mode 100644
+index 0000000..d4b28ce
+--- /dev/null
++++ b/src/bsp/platform/t2/iotc_bsp_time_T2.c
+@@ -0,0 +1,85 @@
++/* Copyright 2018-2020 Google LLC
++ *
++ * This is part of the Google Cloud IoT Device SDK for Embedded C.
++ * It is licensed under the BSD 3-Clause license; you may not use this file
++ * except in compliance with the License.
++ *
++ * You may obtain a copy of the License at:
++ *  https://opensource.org/licenses/BSD-3-Clause
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <iotc_bsp_time.h>
++
++#include <kernel/os.h>
++#include <wifi/wcm.h>
++#include <lwip/ip_addr.h>
++#include <lwip/netif.h>
++#include "wifi_utils.h"
++#include "../../../../../../components/sntp/inc/sntp.h"
++
++
++const char *server_addr;
++const ip_addr_t *addr;
++int  total_sec =0 ,status;
++ip_addr_t server_ip;
++time_t tim;
++
++void iotc_bsp_time_init() { 
++    sntp_stop();
++    sntp_setoperatingmode(SNTP_OPMODE_POLL);
++    server_addr = "216.239.35.0";/*time.google.org*/
++    status = ipaddr_aton(server_addr, &server_ip);
++    if(status != 1) {
++         return false;
++    }
++    sntp_init();
++    sntp_setserver(0, &server_ip);
++    os_sleep_us(2000000, OS_TIMEOUT_NO_WAKEUP);
++    int time_now,  times = 0 , time_ntp = 0;
++    uint64_t now = os_systime64();
++    do{
++        time_now = sntp_time();
++
++        if(0 != time_now)
++        {
++            break;
++        }
++    	os_sleep_us(2000000, OS_TIMEOUT_NO_WAKEUP);
++    }
++    while(times < 16);
++
++    if(times >= 16)
++        return 0;
++    time_ntp = (time_now + 19800);
++    tim = time_ntp;
++
++    sntp_stop(); 
++    struct timespec tp,tp1;
++    tp.tv_sec = time_ntp;
++    tp.tv_nsec = 0;
++    clock_settime(CLOCK_REALTIME, &tp);
++    clock_gettime(CLOCK_REALTIME, &tp1);
++    os_printf("\r\n utc:%lld:%lld:%lld",tp.tv_sec, os_get_utcoffset(), os_systime64());
++
++}
++
++iotc_time_t iotc_bsp_time_getcurrenttime_seconds() { 
++
++    struct timeval now;
++
++    gettimeofday(&now, NULL);
++    return (now.tv_sec - 19800);
++ }
++
++iotc_time_t iotc_bsp_time_getcurrenttime_milliseconds() {
++    struct timeval now;
++   
++    gettimeofday(&now, NULL);
++    return ((now.tv_sec -19800) *1000);
++ }
 diff --git a/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c b/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c
 index d969bdb..83c8a97 100644
 --- a/src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c
@@ -1302,3 +1989,6 @@ index d969bdb..83c8a97 100644
  
      *tls_context = NULL;
    }
+-- 
+2.25.1
+
