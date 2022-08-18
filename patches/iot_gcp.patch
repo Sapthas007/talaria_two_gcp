@@ -1,6 +1,6 @@
-From b90f73e6d269c8ceba1cc67ba74baf9163265c3a Mon Sep 17 00:00:00 2001
+From 91bdd9a98158865fd4cd3b2fa01a6ad72b658d9e Mon Sep 17 00:00:00 2001
 From: sapthas <ssajini@innophaseinc.com>
-Date: Wed, 17 Aug 2022 18:04:15 +0530
+Date: Thu, 18 Aug 2022 00:30:28 +0530
 Subject: [PATCH] create patch file
 
 ---
@@ -17,9 +17,9 @@ Subject: [PATCH] create patch file
  src/bsp/platform/t2/iotc_bsp_io_net_t2.c      | 316 +++++++++++++
  src/bsp/platform/t2/iotc_bsp_mem_t2.c         |  46 ++
  src/bsp/platform/t2/iotc_bsp_rng_t2.c         |  69 +++
- src/bsp/platform/t2/iotc_bsp_time_t2.c        |  96 ++++
+ src/bsp/platform/t2/iotc_bsp_time_t2.c        |  94 ++++
  src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c    |  84 ++--
- 15 files changed, 1039 insertions(+), 549 deletions(-)
+ 15 files changed, 1037 insertions(+), 549 deletions(-)
  create mode 100644 src/bsp/platform/t2/iotc_bsp_crypto.c
  create mode 100644 src/bsp/platform/t2/iotc_bsp_hton.h
  create mode 100644 src/bsp/platform/t2/iotc_bsp_io_fs_t2.c
@@ -1707,10 +1707,10 @@ index 0000000..9b04e9f
 +
 diff --git a/src/bsp/platform/t2/iotc_bsp_time_t2.c b/src/bsp/platform/t2/iotc_bsp_time_t2.c
 new file mode 100644
-index 0000000..d9fcf1b
+index 0000000..d842cdf
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_time_t2.c
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,94 @@
 +/**
 +  ******************************************************************************
 +  * @file   iotc_bsp_mem_t2.c
@@ -1748,25 +1748,24 @@ index 0000000..d9fcf1b
 +#include "../../../../../../components/sntp/inc/sntp.h"
 +
 +
-+const char *server_addr;
-+const ip_addr_t *addr;
-+int  total_sec =0 ,status;
-+ip_addr_t server_ip;
-+time_t tim;
-+
 +void iotc_bsp_time_init() { 
++
++    const char *server_addr;
++    int time_now, times = 0 ,time_ntp = 0;
++    int  status;
++    ip_addr_t server_ip;
++
 +    sntp_stop();
 +    sntp_setoperatingmode(SNTP_OPMODE_POLL);
 +    server_addr = "216.239.35.0";/*time.google.org*/
 +    status = ipaddr_aton(server_addr, &server_ip);
 +    if(status != 1) {
-+         return false;
++         return;
 +    }
 +    sntp_init();
 +    sntp_setserver(0, &server_ip);
 +    os_sleep_us(2000000, OS_TIMEOUT_NO_WAKEUP);
-+    int time_now,  times = 0 , time_ntp = 0;
-+    uint64_t now = os_systime64();
++
 +    do{
 +        time_now = sntp_time();
 +
@@ -1779,9 +1778,8 @@ index 0000000..d9fcf1b
 +    while(times < 16);
 +
 +    if(times >= 16)
-+        return 0;
++        return;
 +    time_ntp = (time_now + 19800);
-+    tim = time_ntp;
 +
 +    sntp_stop(); 
 +    struct timespec tp,tp1;
