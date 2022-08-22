@@ -1,15 +1,15 @@
-From 91bdd9a98158865fd4cd3b2fa01a6ad72b658d9e Mon Sep 17 00:00:00 2001
+From 8870fe248f38892511cd546b0109c352e8fd7d05 Mon Sep 17 00:00:00 2001
 From: sapthas <ssajini@innophaseinc.com>
-Date: Thu, 18 Aug 2022 00:30:28 +0530
+Date: Mon, 22 Aug 2022 11:26:17 +0530
 Subject: [PATCH] create patch file
 
 ---
  Makefile                                      | 421 +++++-------------
  examples/common/src/commandline.c             | 142 ------
  examples/common/src/commandline.h             |  10 +-
- examples/common/src/example_utils.c           | 123 +++--
- examples/common/src/example_utils.h           |   9 +
- .../src/iot_core_mqtt_client.c                | 120 ++++-
+ examples/common/src/example_utils.c           |  84 ++--
+ examples/common/src/example_utils.h           |  14 +
+ .../src/iot_core_mqtt_client.c                | 175 +++++++-
  .../crypto/mbedtls/iotc_bsp_crypto_mbedtls.c  |   5 +
  src/bsp/platform/t2/iotc_bsp_crypto.c         |  52 +++
  src/bsp/platform/t2/iotc_bsp_hton.h           |   7 +
@@ -19,7 +19,7 @@ Subject: [PATCH] create patch file
  src/bsp/platform/t2/iotc_bsp_rng_t2.c         |  69 +++
  src/bsp/platform/t2/iotc_bsp_time_t2.c        |  94 ++++
  src/bsp/tls/mbedtls/iotc_bsp_tls_mbedtls.c    |  84 ++--
- 15 files changed, 1037 insertions(+), 549 deletions(-)
+ 15 files changed, 1055 insertions(+), 552 deletions(-)
  create mode 100644 src/bsp/platform/t2/iotc_bsp_crypto.c
  create mode 100644 src/bsp/platform/t2/iotc_bsp_hton.h
  create mode 100644 src/bsp/platform/t2/iotc_bsp_io_fs_t2.c
@@ -643,29 +643,27 @@ index 16d22e9..4d706f7 100644
  int iotc_parse(int argc, char** argv, char* valid_options,
                 const unsigned options_length);
 diff --git a/examples/common/src/example_utils.c b/examples/common/src/example_utils.c
-index abfd930..54b5953 100644
+index abfd930..74b43e6 100644
 --- a/examples/common/src/example_utils.c
 +++ b/examples/common/src/example_utils.c
-@@ -20,64 +20,51 @@
+@@ -20,64 +20,34 @@
  
  #include "commandline.h"
  #include "example_utils.h"
--
 +#include <stdio.h>
 +#include <string.h>
 +#include <kernel/os.h>
 +#include <kernel/spi-mem.h>
 +#include <unistd.h>
 +#include <kernel/flash.h>
-+#include <kernel/gpio.h>
 +/* for print_ver */
 +#include "utils.h"
 +
-+#define LED_PIN 14
+ 
  #define IOTC_UNUSED(x) (void)(x)
  
 +char *subscribe_topic_command;
-+int led_pin = 1 << LED_PIN;
++
  extern iotc_crypto_key_data_t iotc_connect_private_key_data;
  
  static iotc_timed_task_handle_t delayed_publish_task =
@@ -688,49 +686,37 @@ index abfd930..54b5953 100644
 -       to the console. Therefore just silently exit here. */
 -    return -1;
 -  }
-+char *gcp_prvate_pem;
-+int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
-+                                          size_t buf_len) {
- 
+-
 -  /* Check to see that the required parameters were all present on the command
 -   * line */
 -  if (NULL == iotc_project_id) {
 -    missingparameter = 1;
 -    printf("-p --project_id is required\n");
 -  }
-+    /* Request led pin and set as output */
- 
+-
 -  if (NULL == iotc_device_path) {
 -    missingparameter = 1;
 -    printf("-d --device_path is required\n");
 -  }
-+    os_gpio_request(led_pin);
-+    os_gpio_set_output(led_pin);
-+    os_gpio_clr_pin(led_pin);
-+    
-+  int rc;
- 
+-
 -  if (NULL == iotc_publish_topic) {
 -    missingparameter = 1;
 -    printf("-t --publish_topic is required\n");
 -  }
-+  rc = utils_mount_rootfs();
- 
+-
 -  if (1 == missingparameter) {
 -    /* Error has already been logged, above.  Silently exit here */
 -    printf("\n");
 -    return -1;
-+  if(rc < 0) {
-+	os_printf("Reading the certs and key in rooFS failed, cant proceed. \n"
-+			"Please program needed files in rootFS...\n");
-+	return rc;
-   }
- 
+-  }
+-
 -  return 0;
 -}
 -
--int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
--                                          size_t buf_len) {
++char *gcp_prvate_pem;
+ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+                                           size_t buf_len) {
++
    FILE* fp = fopen(iotc_private_key_filename, "rb");
 +
    if (fp == NULL) {
@@ -741,7 +727,7 @@ index abfd930..54b5953 100644
          "\tMissing Private Key required for JWT signing.\n"
          "\tPlease copy and paste your device's EC private key into\n"
          "\ta file with the following path based on this executable's\n"
-@@ -93,7 +80,7 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+@@ -93,7 +63,7 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
    rewind(fp);
  
    if ((size_t)file_size > buf_len) {
@@ -750,7 +736,7 @@ index abfd930..54b5953 100644
          "private key file size of %lu bytes is larger that certificate buffer "
          "size of %lu bytes\n",
          file_size, (long)buf_len);
-@@ -105,15 +92,46 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
+@@ -105,15 +75,18 @@ int load_ec_private_key_pem_from_posix_fs(char* buf_ec_private_key_pem,
    fclose(fp);
  
    if (bytes_read != file_size) {
@@ -762,35 +748,7 @@ index abfd930..54b5953 100644
    return 0;
  }
  
-+void iotc_mqttlogic_subscribe_callback(
-+    iotc_context_handle_t in_context_handle, iotc_sub_call_type_t call_type,
-+    const iotc_sub_call_params_t *const params, iotc_state_t state,
-+    void *user_data)
-+{
-+    IOTC_UNUSED(in_context_handle);
-+    IOTC_UNUSED(call_type);
-+    IOTC_UNUSED(state);
-+    IOTC_UNUSED(user_data);
-+    if (params != NULL && params->message.topic != NULL) {
 +
-+        os_printf("\n Subscription Topic: %s", params->message.topic);
-+        char *sub_message = (char *)os_alloc(params->message.temporary_payload_data_length + 1);
-+        if (sub_message == NULL) {
-+            os_printf("Failed to allocate memory");
-+            return;
-+        }
-+        memcpy(sub_message, params->message.temporary_payload_data, params->message.temporary_payload_data_length);
-+        sub_message[params->message.temporary_payload_data_length] = '\0';
-+        os_printf("\n Message Payload: %s ", sub_message);
-+
-+            if (!strcmp(sub_message,"{\"LED\": ON}")) {
-+                  os_gpio_set_pin(led_pin);
-+            } else if (!strcmp(sub_message,"{\"LED\": OFF}")) {
-+                     os_gpio_clr_pin(led_pin);
-+            }
-+        os_free(sub_message);
-+    }
-+}
 +
  void on_connection_state_changed(iotc_context_handle_t in_context_handle,
                                   void* data, iotc_state_t state) {
@@ -798,7 +756,7 @@ index abfd930..54b5953 100644
    iotc_connection_data_t* conn_data = (iotc_connection_data_t*)data;
  
    if (NULL == conn_data) {
-@@ -124,8 +142,12 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+@@ -124,8 +97,12 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
      /* IOTC_CONNECTION_STATE_OPENED means that the connection has been
         established and the IoTC Client is ready to send/recv messages */
      case IOTC_CONNECTION_STATE_OPENED:
@@ -812,7 +770,7 @@ index abfd930..54b5953 100644
        /* Publish immediately upon connect. 'publish_function' is defined
           in this example file and invokes the IoTC API to publish a
           message. */
-@@ -143,7 +165,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+@@ -143,7 +120,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
         is contained in the 'state' variable. Here we log the error state and
         exit out of the application. */
      case IOTC_CONNECTION_STATE_OPEN_FAILED:
@@ -821,7 +779,7 @@ index abfd930..54b5953 100644
               iotc_get_state_string(state));
  
        /* exit it out of the application by stopping the event loop. */
-@@ -163,6 +185,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+@@ -163,6 +140,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
           registered activities. Using cancel function on handler will remove the
           handler from the timed queue which prevents the registered handle to be
           called when there is no connection. */
@@ -829,7 +787,7 @@ index abfd930..54b5953 100644
        if (IOTC_INVALID_TIMED_TASK_HANDLE != delayed_publish_task) {
          iotc_cancel_timed_task(delayed_publish_task);
          delayed_publish_task = IOTC_INVALID_TIMED_TASK_HANDLE;
-@@ -174,7 +197,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+@@ -174,7 +152,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
           * in this example. */
          iotc_events_stop();
        } else {
@@ -838,7 +796,7 @@ index abfd930..54b5953 100644
                 iotc_get_state_string(state));
          /* The disconnection was unforeseen.  Try to reconnect to the server
             with the previously set username and client_id, but regenerate
-@@ -187,7 +210,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+@@ -187,7 +165,7 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
                                          &iotc_connect_private_key_data, jwt,
                                          IOTC_JWT_SIZE, &bytes_written);
          if (IOTC_STATE_OK != state) {
@@ -847,7 +805,7 @@ index abfd930..54b5953 100644
                "iotc_create_iotcore_jwt returned with error"
                " when attempting to reconnect: %ul\n",
                state);
-@@ -220,6 +243,8 @@ void publish_function(iotc_context_handle_t context_handle,
+@@ -220,6 +198,8 @@ void publish_function(iotc_context_handle_t context_handle,
  
    printf("publishing msg \"%s\" to topic: \"%s\"\n", iotc_publish_message,
           iotc_publish_topic);
@@ -857,7 +815,7 @@ index abfd930..54b5953 100644
    iotc_publish(context_handle, iotc_publish_topic, iotc_publish_message,
                 iotc_example_qos,
 diff --git a/examples/common/src/example_utils.h b/examples/common/src/example_utils.h
-index 1f4c4e0..ed4566e 100644
+index 1f4c4e0..d4515df 100644
 --- a/examples/common/src/example_utils.h
 +++ b/examples/common/src/example_utils.h
 @@ -18,6 +18,15 @@
@@ -876,11 +834,20 @@ index 1f4c4e0..ed4566e 100644
  /* Parses and manages commandline arguments. Project id, device path and publish
   * topic are require to be passed as command line arguments. Prints
   * notification if either of these is not found.
+@@ -78,3 +87,8 @@ void on_connection_state_changed(iotc_context_handle_t in_context_handle,
+    event system on a 5 second interval. */
+ void publish_function(iotc_context_handle_t context_handle,
+                       iotc_timed_task_handle_t timed_task, void* user_data);
++                      
++void iotc_mqttlogic_subscribe_callback(
++    iotc_context_handle_t in_context_handle, iotc_sub_call_type_t call_type,
++    const iotc_sub_call_params_t *const params, iotc_state_t state,
++    void *user_data);
 diff --git a/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c b/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
-index 1c4eb92..a119544 100644
+index 1c4eb92..e627a27 100644
 --- a/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
 +++ b/examples/iot_core_mqtt_client/src/iot_core_mqtt_client.c
-@@ -29,23 +29,126 @@
+@@ -29,23 +29,181 @@
  #include <iotc_error.h>
  #include <iotc_jwt.h>
  #include <stdio.h>
@@ -889,8 +856,12 @@ index 1c4eb92..a119544 100644
 +#include "wifi_utils.h"
 +#include <assert.h>
 +#include <iotc_mqtt.h>
-+
-+
++#include <kernel/gpio.h>
++#include <kernel/spi-mem.h>
++#include <unistd.h>
++#include <kernel/flash.h>
++#include "utils.h"
+ 
 +#ifndef IOTC_CROSS_TARGET
 +#include <getopt.h>
 +#define IOTC_EXAMPLE_DEFAULT_QOS IOTC_MQTT_QOS_AT_LEAST_ONCE
@@ -899,6 +870,9 @@ index 1c4eb92..a119544 100644
 +#endif /* IOTC_CROSS_TARGET */
 +
 +#define DEFAULT_PRIVATE_KEY_FIILENAME "/data/ec_private.pem"
++
++#define LED_PIN 14
++#define IOTC_UNUSED(x) (void)(x)
 +
 +struct wcm_handle *h;
 +struct wcm_handle *wcm_handle;
@@ -913,7 +887,7 @@ index 1c4eb92..a119544 100644
 +const char *ssid;
 +const char *passphrase;
 +int wcm_connect_success = 0;
- 
++int led_pin = 1 << LED_PIN;
  /* Application variables. */
  iotc_crypto_key_data_t iotc_connect_private_key_data;
  char ec_private_key_pem[PRIVATE_KEY_BUFFER_SIZE] = {0};
@@ -974,6 +948,38 @@ index 1c4eb92..a119544 100644
 +    return false;
 +}
 +
++
++void iotc_mqttlogic_subscribe_callback(
++    iotc_context_handle_t in_context_handle, iotc_sub_call_type_t call_type,
++    const iotc_sub_call_params_t *const params, iotc_state_t state,
++    void *user_data)
++{
++    IOTC_UNUSED(in_context_handle);
++    IOTC_UNUSED(call_type);
++    IOTC_UNUSED(state);
++    IOTC_UNUSED(user_data);
++    if (params != NULL && params->message.topic != NULL) {
++
++        os_printf("\n Subscription Topic: %s", params->message.topic);
++        char *sub_message = (char *)os_alloc(params->message.temporary_payload_data_length + 1);
++        if (sub_message == NULL) {
++            os_printf("Failed to allocate memory");
++            return;
++        }
++        memcpy(sub_message, params->message.temporary_payload_data, params->message.temporary_payload_data_length);
++        sub_message[params->message.temporary_payload_data_length] = '\0';
++        os_printf("\n Message Payload: %s ", sub_message);
++
++            if (!strcmp(sub_message,"{\"LED\": ON}")) {
++                  os_gpio_set_pin(led_pin);
++            } else if (!strcmp(sub_message,"{\"LED\": OFF}")) {
++                     os_gpio_clr_pin(led_pin);
++            }
++        os_free(sub_message);
++    }
++}
++
++
  /*  -main-
      The main entry point for this example binary.
  
@@ -987,6 +993,8 @@ index 1c4eb92..a119544 100644
 -    return -1;
 -  }
 +  
++    int rc;
++    
 +    /*Read the boot args*/
 +    ssid = os_get_boot_arg_str("ssid") ?: "";
 +    iotc_project_id = os_get_boot_arg_str("iotc_project_id") ?: "";
@@ -994,7 +1002,21 @@ index 1c4eb92..a119544 100644
 +    iotc_publish_topic = os_get_boot_arg_str("iotc_publish_topic") ?: "";
 +    iotc_publish_message = os_get_boot_arg_str("iotc_publish_message") ?: "";
 +    iotc_private_key_filename = DEFAULT_PRIVATE_KEY_FIILENAME;
-+  
++
++     /* Request led pin and set as output */
++
++    os_gpio_request(led_pin);
++    os_gpio_set_output(led_pin);
++    os_gpio_clr_pin(led_pin);
++ 
++    rc = utils_mount_rootfs();
++
++    if(rc < 0) {
++	os_printf("Reading the certs and key in rooFS failed, cant proceed. \n"
++			"Please program needed files in rootFS...\n");
++	return rc;
++    }
++   
 +    /*Connect to WiFi N/w*/
 +    os_sem_init(&app_wcm_lock, 0);
 +    wcm_handle = wcm_create(NULL);
@@ -1011,7 +1033,7 @@ index 1c4eb92..a119544 100644
  
    /* This example assumes the private key to be used to  sign the IoT Core
       Connect JWT credential is a PEM encoded ES256 private key,
-@@ -56,9 +159,8 @@ int main(int argc, char* argv[]) {
+@@ -56,9 +214,8 @@ int main(int argc, char* argv[]) {
       documentation in include/iotc_types.h. */
  
    /* Use the example utils function to load the key from disk into memory. */
@@ -1022,7 +1044,7 @@ index 1c4eb92..a119544 100644
      return -1;
    }
  
-@@ -75,9 +177,7 @@ int main(int argc, char* argv[]) {
+@@ -75,9 +232,7 @@ int main(int argc, char* argv[]) {
    /* Initialize iotc library and create a context to use to connect to the
     * GCP IoT Core Service. */
    const iotc_state_t error_init = iotc_initialize();
@@ -1032,7 +1054,7 @@ index 1c4eb92..a119544 100644
      return -1;
    }
  
-@@ -86,7 +186,6 @@ int main(int argc, char* argv[]) {
+@@ -86,7 +241,6 @@ int main(int argc, char* argv[]) {
        to numerous topics. */
    iotc_context = iotc_create_context();
    if (IOTC_INVALID_CONTEXT_HANDLE >= iotc_context) {
@@ -1040,7 +1062,7 @@ index 1c4eb92..a119544 100644
      return -1;
    }
  
-@@ -108,11 +207,8 @@ int main(int argc, char* argv[]) {
+@@ -108,11 +262,8 @@ int main(int argc, char* argv[]) {
        IOTC_JWT_SIZE, &bytes_written);
  
    if (IOTC_STATE_OK != state) {
@@ -1258,7 +1280,7 @@ index 0000000..96a5ef3
 +}
 diff --git a/src/bsp/platform/t2/iotc_bsp_io_net_t2.c b/src/bsp/platform/t2/iotc_bsp_io_net_t2.c
 new file mode 100644
-index 0000000..ae367df
+index 0000000..5267565
 --- /dev/null
 +++ b/src/bsp/platform/t2/iotc_bsp_io_net_t2.c
 @@ -0,0 +1,316 @@
@@ -1328,7 +1350,7 @@ index 0000000..ae367df
 +  hints.ai_protocol = 0;
 +
 +  // Address resolution.
-+  status = lwip_getaddrinfo(host, port_num, &hints, &result);
++  status = getaddrinfo(host, port_num, &hints, &result);
 +  
 +  if (0 != status) {
 +    return IOTC_BSP_IO_NET_STATE_ERROR;
@@ -1336,23 +1358,23 @@ index 0000000..ae367df
 +
 +  for (rp = result; rp != NULL; rp = rp->ai_next) {
 +
-+    *iotc_socket = lwip_socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
++    *iotc_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 +    if (-1 == *iotc_socket) continue;
 +
 +    // Attempt to connect.
-+    status = lwip_connect(*iotc_socket, rp->ai_addr, rp->ai_addrlen);
++    status = connect(*iotc_socket, rp->ai_addr, rp->ai_addrlen);
 +    if (-1 != status) {
-+       lwip_freeaddrinfo(result);
-+       const int flags = lwip_fcntl(*iotc_socket, F_GETFL, 0);
++       freeaddrinfo(result);
++       const int flags = fcntl(*iotc_socket, F_GETFL, 0);
 +    
-+	if (-1 == lwip_fcntl(*iotc_socket, F_SETFL, flags | O_NONBLOCK)) {
-+		lwip_freeaddrinfo(result);
++	if (-1 == fcntl(*iotc_socket, F_SETFL, flags | O_NONBLOCK)) {
++		freeaddrinfo(result);
 +	return IOTC_BSP_IO_NET_STATE_ERROR;
 +	} 
 +      	return IOTC_BSP_IO_NET_STATE_OK;
 +    } else {
-+        lwip_freeaddrinfo(result);
-+        lwip_close(*iotc_socket);
++        freeaddrinfo(result);
++        close(*iotc_socket);
 +    }
 +  }
 +
@@ -1406,7 +1428,7 @@ index 0000000..ae367df
 +    return IOTC_BSP_IO_NET_STATE_ERROR;
 +  }
 +
-+  *out_written_count = lwip_write(iotc_socket, buf, count);
++  *out_written_count = write(iotc_socket, buf, count);
 +
 +  if (*out_written_count < 0) {
 +    *out_written_count = 0;
@@ -1439,7 +1461,7 @@ index 0000000..ae367df
 +  }
 +
 +  int errval = 0;
-+  *out_read_count = lwip_read(iotc_socket, buf, count);
++  *out_read_count = read(iotc_socket, buf, count);
 +
 +  if (*out_read_count < 0) {
 +    *out_read_count = 0;
@@ -1477,7 +1499,7 @@ index 0000000..ae367df
 +
 +  shutdown(*iotc_socket, SHUT_RDWR);
 +
-+  lwip_close(*iotc_socket);
++  close(*iotc_socket);
 +
 +  *iotc_socket = 0;
 +
@@ -1542,7 +1564,7 @@ index 0000000..ae367df
 +  tv.tv_sec = timeout_sec;
 +
 +  /* call the actual posix select */
-+  const int result = lwip_select(max_fd + 1, &rfds, &wfds, &efds, &tv);
++  const int result = select(max_fd + 1, &rfds, &wfds, &efds, &tv);
 +
 +  if (0 < result) {
 +    /* translate the result back to the socket events structure */
